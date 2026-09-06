@@ -23,21 +23,21 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
 
-    _scaleAnim = Tween<double>(begin: 0.3, end: 1.0).animate(
+    _scaleAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.elasticOut),
     );
 
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
       CurvedAnimation(
         parent: _controller,
-        curve: const Interval(0.0, 0.5, curve: Curves.easeIn),
+        curve: const Interval(0.0, 0.45, curve: Curves.easeIn),
       ),
     );
 
     _controller.forward();
 
-    // Navigate to Home after 2.2s
-    Future.delayed(const Duration(milliseconds: 2200), () {
+    // Navigate to Home after 2.4s
+    Future.delayed(const Duration(milliseconds: 2400), () {
       if (mounted) {
         Navigator.of(context).pushReplacement(
           PageRouteBuilder(
@@ -62,48 +62,30 @@ class _SplashScreenState extends State<SplashScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFAB40),
-      body: Center(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: ScaleTransition(
-            scale: _scaleAnim,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                // Star burst emoji
-                const Text(
-                  '⭐',
-                  style: TextStyle(fontSize: 96),
+      // Sky-blue gradient background matching the logo's blue circle
+      body: Container(
+        decoration: const BoxDecoration(
+          gradient: LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [
+              Color(0xFF87CEEB), // sky blue top
+              Color(0xFF40C4FF), // vivid blue bottom
+            ],
+          ),
+        ),
+        child: Center(
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Image.asset(
+                  'assets/images/trans-logo.png',
+                  fit: BoxFit.contain,
                 ),
-                const SizedBox(height: 16),
-                // App title
-                const Text(
-                  'Giggle Go!',
-                  style: TextStyle(
-                    fontSize: 48,
-                    fontWeight: FontWeight.w900,
-                    color: Colors.white,
-                    letterSpacing: -1,
-                    shadows: [
-                      Shadow(
-                        color: Color(0x55000000),
-                        blurRadius: 8,
-                        offset: Offset(0, 4),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 8),
-                Text(
-                  'Learning is fun! 🎉',
-                  style: TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white.withValues(alpha: 0.85),
-                  ),
-                ),
-              ],
+              ),
             ),
           ),
         ),

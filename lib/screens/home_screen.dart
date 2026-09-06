@@ -116,16 +116,13 @@ class _HomeScreenState extends State<HomeScreen> {
               padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
               child: Row(
                 children: [
-                  // App title
-                  const Expanded(
-                    child: Text(
-                      'Giggle Go! 🎉',
-                      style: TextStyle(
-                        fontSize: 28,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF37474F),
-                        letterSpacing: -0.5,
-                      ),
+                  // App logo
+                  Expanded(
+                    child: Image.asset(
+                      'assets/images/trans-logo.png',
+                      height: 56,
+                      alignment: Alignment.centerLeft,
+                      fit: BoxFit.contain,
                     ),
                   ),
                   // Total star counter
