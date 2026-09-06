@@ -32,9 +32,9 @@ class _ResultScreenState extends State<ResultScreen>
 
     _entryController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 700),
+      duration: const Duration(milliseconds: 650),
     );
-    _scaleAnim = Tween<double>(begin: 0.4, end: 1.0).animate(
+    _scaleAnim = Tween<double>(begin: 0.5, end: 1.0).animate(
       CurvedAnimation(parent: _entryController, curve: Curves.elasticOut),
     );
     _fadeAnim = Tween<double>(begin: 0.0, end: 1.0).animate(
@@ -46,7 +46,7 @@ class _ResultScreenState extends State<ResultScreen>
 
     _starsController = AnimationController(
       vsync: this,
-      duration: Duration(milliseconds: 400 + widget.starsEarned * 120),
+      duration: Duration(milliseconds: 350 + widget.starsEarned * 110),
     );
     _starsAnim = IntTween(begin: 0, end: widget.starsEarned)
         .animate(CurvedAnimation(parent: _starsController, curve: Curves.easeOut));
@@ -72,37 +72,47 @@ class _ResultScreenState extends State<ResultScreen>
     return map[widget.categoryId] ?? 'Game';
   }
 
-  Color get _accentColor {
+  List<Color> get _gradientColors {
     const map = {
-      'colors': Color(0xFFFF8A65),
-      'fruits': Color(0xFF66BB6A),
-      'animals': Color(0xFF42A5F5),
-      'vehicles': Color(0xFFAB47BC),
-      'shapes': Color(0xFFFFCA28),
+      'colors': [Color(0xFFFF5277), Color(0xFFFF7A45)],
+      'fruits': [Color(0xFF00B074), Color(0xFF52D68A)],
+      'animals': [Color(0xFFFF9500), Color(0xFFFF5E3A)],
+      'vehicles': [Color(0xFF0088FF), Color(0xFF00C6FF)],
+      'shapes': [Color(0xFF8E24AA), Color(0xFFBA68C8)],
     };
-    return map[widget.categoryId] ?? const Color(0xFFFFAB40);
+    return map[widget.categoryId] ?? const [Color(0xFFFF9500), Color(0xFFFF5E3A)];
   }
+
+  Color get _accentColor => _gradientColors.first;
 
   String get _resultEmoji {
     final pct = widget.starsEarned / widget.totalQuestions;
     if (pct == 1.0) return '🏆';
     if (pct >= 0.7) return '🌟';
-    if (pct >= 0.5) return '😊';
+    if (pct >= 0.5) return '🎉';
     return '💪';
   }
 
   String get _resultTitle {
     final pct = widget.starsEarned / widget.totalQuestions;
-    if (pct == 1.0) return 'Perfect!';
-    if (pct >= 0.7) return 'Well done!';
-    if (pct >= 0.5) return 'Good job!';
-    return 'Keep going!';
+    if (pct == 1.0) return 'Perfect Score!';
+    if (pct >= 0.7) return 'Great Job!';
+    if (pct >= 0.5) return 'Good Effort!';
+    return 'Keep Practicing!';
+  }
+
+  String get _resultSubtitle {
+    final pct = widget.starsEarned / widget.totalQuestions;
+    if (pct == 1.0) return 'You are a master of $_categoryName!';
+    if (pct >= 0.7) return 'You learned so many $_categoryName today!';
+    if (pct >= 0.5) return 'You are getting better and better!';
+    return 'Every play makes you smarter!';
   }
 
   void _playAgain() {
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 400),
+        transitionDuration: const Duration(milliseconds: 350),
         pageBuilder: (context, animation, secondaryAnimation) =>
             GameScreen(categoryId: widget.categoryId),
         transitionsBuilder: (context, animation, secondaryAnimation, child) =>
@@ -118,91 +128,167 @@ class _ResultScreenState extends State<ResultScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1),
+      backgroundColor: const Color(0xFFFAF9F6),
       body: SafeArea(
         child: FadeTransition(
           opacity: _fadeAnim,
           child: ScaleTransition(
             scale: _scaleAnim,
             child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 28),
+              padding: const EdgeInsets.symmetric(horizontal: 24),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  // Trophy / result emoji
-                  Text(
-                    _resultEmoji,
-                    style: const TextStyle(fontSize: 90),
+                  // Celebration Badge
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: _accentColor.withValues(alpha: 0.12),
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: Text(
+                      _categoryName.toUpperCase(),
+                      style: TextStyle(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w900,
+                        color: _accentColor,
+                        letterSpacing: 2,
+                      ),
+                    ),
                   ),
-                  const SizedBox(height: 12),
+                  const SizedBox(height: 18),
 
-                  // Title
+                  // Trophy / Mascot Halo
+                  Container(
+                    padding: const EdgeInsets.all(26),
+                    decoration: BoxDecoration(
+                      color: Colors.white,
+                      shape: BoxShape.circle,
+                      boxShadow: [
+                        BoxShadow(
+                          color: _accentColor.withValues(alpha: 0.2),
+                          blurRadius: 30,
+                          spreadRadius: 8,
+                          offset: const Offset(0, 8),
+                        ),
+                      ],
+                    ),
+                    child: Text(
+                      _resultEmoji,
+                      style: const TextStyle(fontSize: 84),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Title & Subtitle
                   Text(
                     _resultTitle,
                     style: TextStyle(
-                      fontSize: 40,
+                      fontSize: 34,
                       fontWeight: FontWeight.w900,
-                      color: _accentColor,
+                      color: const Color(0xFF1E293B),
+                      letterSpacing: 0.3,
                       height: 1.1,
                     ),
+                    textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 6),
-
                   Text(
-                    _categoryName,
+                    _resultSubtitle,
                     style: const TextStyle(
-                      fontSize: 18,
+                      fontSize: 15,
                       fontWeight: FontWeight.w600,
-                      color: Color(0xFF90A4AE),
-                      letterSpacing: 2,
+                      color: Color(0xFF64748B),
                     ),
+                    textAlign: TextAlign.center,
                   ),
-                  const SizedBox(height: 32),
+                  const SizedBox(height: 24),
 
-                  // Score
+                  // Star Showcase Card
                   AnimatedBuilder(
                     animation: _starsAnim,
                     builder: (context, child) {
-                      return Column(
-                        children: [
-                          // Star row
-                          Wrap(
-                            alignment: WrapAlignment.center,
-                            spacing: 4,
-                            children: List.generate(
-                              widget.totalQuestions,
-                              (i) => Text(
-                                i < _starsAnim.value ? '⭐' : '☆',
-                                style: const TextStyle(fontSize: 28),
+                      return Container(
+                        padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(24),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 14,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: Column(
+                          children: [
+                            // 10 Stars row
+                            Wrap(
+                              alignment: WrapAlignment.center,
+                              spacing: 6,
+                              runSpacing: 6,
+                              children: List.generate(
+                                widget.totalQuestions,
+                                (i) {
+                                  final isEarned = i < _starsAnim.value;
+                                  return AnimatedScale(
+                                    scale: isEarned ? 1.05 : 0.9,
+                                    duration: const Duration(milliseconds: 200),
+                                    child: Text(
+                                      isEarned ? '⭐' : '☆',
+                                      style: TextStyle(
+                                        fontSize: 26,
+                                        color: isEarned ? const Color(0xFFFFB300) : const Color(0xFFCBD5E1),
+                                      ),
+                                    ),
+                                  );
+                                },
                               ),
                             ),
-                          ),
-                          const SizedBox(height: 12),
-                          Text(
-                            '${_starsAnim.value} out of ${widget.totalQuestions}',
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF37474F),
+                            const SizedBox(height: 12),
+                            // Score Pill
+                            Container(
+                              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                              decoration: BoxDecoration(
+                                color: const Color(0xFFFFF8E1),
+                                borderRadius: BorderRadius.circular(16),
+                                border: Border.all(color: const Color(0xFFFFE082)),
+                              ),
+                              child: Text(
+                                '${_starsAnim.value} of ${widget.totalQuestions} Stars Earned!',
+                                style: const TextStyle(
+                                  fontSize: 15,
+                                  fontWeight: FontWeight.w800,
+                                  color: Color(0xFFB45309),
+                                ),
+                              ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       );
                     },
                   ),
 
-                  const SizedBox(height: 48),
+                  const SizedBox(height: 32),
 
-                  // Buttons
+                  // Play Again Button (Primary tactile button)
                   _ActionButton(
                     label: '🔄  Play Again',
-                    color: _accentColor,
+                    gradient: _gradientColors,
+                    shadowColor: _accentColor,
+                    isPrimary: true,
                     onTap: _playAgain,
                   ),
-                  const SizedBox(height: 14),
+                  const SizedBox(height: 12),
+
+                  // Back to Home Button
                   _ActionButton(
-                    label: '🏠  Home',
-                    color: const Color(0xFF78909C),
+                    label: '🏠  Back to Home',
+                    color: Colors.white,
+                    textColor: const Color(0xFF475569),
+                    borderColor: const Color(0xFFE2E8F0),
                     onTap: _goHome,
                   ),
                 ],
@@ -217,12 +303,22 @@ class _ResultScreenState extends State<ResultScreen>
 
 class _ActionButton extends StatefulWidget {
   final String label;
-  final Color color;
+  final List<Color>? gradient;
+  final Color? color;
+  final Color? shadowColor;
+  final Color textColor;
+  final Color? borderColor;
+  final bool isPrimary;
   final VoidCallback onTap;
 
   const _ActionButton({
     required this.label,
-    required this.color,
+    this.gradient,
+    this.color,
+    this.shadowColor,
+    this.textColor = Colors.white,
+    this.borderColor,
+    this.isPrimary = false,
     required this.onTap,
   });
 
@@ -243,29 +339,47 @@ class _ActionButtonState extends State<_ActionButton> {
       },
       onTapCancel: () => setState(() => _pressed = false),
       child: AnimatedScale(
-        scale: _pressed ? 0.94 : 1.0,
+        scale: _pressed ? 0.95 : 1.0,
         duration: const Duration(milliseconds: 100),
         child: Container(
           width: double.infinity,
-          padding: const EdgeInsets.symmetric(vertical: 18),
+          padding: const EdgeInsets.symmetric(vertical: 17),
           decoration: BoxDecoration(
             color: widget.color,
-            borderRadius: BorderRadius.circular(24),
+            gradient: widget.gradient != null
+                ? LinearGradient(
+                    colors: widget.gradient!,
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                  )
+                : null,
+            borderRadius: BorderRadius.circular(22),
+            border: widget.borderColor != null
+                ? Border.all(color: widget.borderColor!, width: 1.5)
+                : Border.all(color: Colors.white.withValues(alpha: 0.3), width: 1.5),
             boxShadow: [
-              BoxShadow(
-                color: widget.color.withValues(alpha: 0.35),
-                blurRadius: 16,
-                offset: const Offset(0, 6),
-              ),
+              if (widget.isPrimary && widget.shadowColor != null)
+                BoxShadow(
+                  color: widget.shadowColor!.withValues(alpha: 0.35),
+                  blurRadius: 16,
+                  offset: const Offset(0, 6),
+                )
+              else
+                BoxShadow(
+                  color: Colors.black.withValues(alpha: 0.04),
+                  blurRadius: 10,
+                  offset: const Offset(0, 3),
+                ),
             ],
           ),
           child: Text(
             widget.label,
             textAlign: TextAlign.center,
-            style: const TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w800,
-              color: Colors.white,
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w900,
+              color: widget.textColor,
+              letterSpacing: 0.3,
             ),
           ),
         ),

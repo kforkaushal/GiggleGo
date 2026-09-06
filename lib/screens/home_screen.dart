@@ -6,7 +6,7 @@ import '../services/storage_service.dart';
 import 'game_screen.dart';
 import 'parent_area_screen.dart';
 
-/// Home screen — shows all 5 game category cards and parental settings access.
+/// Home screen — shows 5 category cards, sound toggle, and parental settings.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -15,88 +15,108 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Category metadata: id, display title, emoji, card color, shadow color
+  // Category metadata: id, display title, emoji, rich gradients
   static const List<Map<String, dynamic>> _categories = [
     {
       'id': 'colors',
       'title': 'Colors',
       'emoji': '🌈',
-      'color': Color(0xFFE91E63),
-      'shadow': Color(0xFFE91E63),
+      'subtitle': 'Red, blue & bright hues!',
+      'gradient': [Color(0xFFFF5277), Color(0xFFFF7A45)],
+      'shadow': Color(0xFFFF5277),
     },
     {
       'id': 'fruits',
       'title': 'Fruits',
       'emoji': '🍎',
-      'color': Color(0xFF4CAF50),
-      'shadow': Color(0xFF4CAF50),
+      'subtitle': 'Apples, bananas & berries!',
+      'gradient': [Color(0xFF00B074), Color(0xFF52D68A)],
+      'shadow': Color(0xFF00B074),
     },
     {
       'id': 'animals',
       'title': 'Animals',
       'emoji': '🦁',
-      'color': Color(0xFFFF9800),
-      'shadow': Color(0xFFFF9800),
+      'subtitle': 'Lions, puppies & pandas!',
+      'gradient': [Color(0xFFFF9500), Color(0xFFFF5E3A)],
+      'shadow': Color(0xFFFF9500),
     },
     {
       'id': 'vehicles',
       'title': 'Vehicles',
       'emoji': '🚗',
-      'color': Color(0xFF2196F3),
-      'shadow': Color(0xFF2196F3),
+      'subtitle': 'Cars, trains & rockets!',
+      'gradient': [Color(0xFF0088FF), Color(0xFF00C6FF)],
+      'shadow': Color(0xFF0088FF),
     },
     {
       'id': 'shapes',
       'title': 'Shapes',
       'emoji': '⭐',
-      'color': Color(0xFF9C27B0),
-      'shadow': Color(0xFF9C27B0),
+      'subtitle': 'Discover circles, stars & patterns!',
+      'gradient': [Color(0xFF8E24AA), Color(0xFFBA68C8)],
+      'shadow': Color(0xFF8E24AA),
     },
   ];
 
-  // Persisted star totals per category
   final Map<String, int> _starTotals = {};
   int _totalStars = 0;
+  bool _soundEnabled = true;
 
   @override
   void initState() {
     super.initState();
-    _loadStars();
+    _loadState();
   }
 
-  Future<void> _loadStars() async {
+  Future<void> _loadState() async {
     int total = 0;
     for (final cat in _categories) {
       final stars = await StorageService.getStars(cat['id'] as String);
       _starTotals[cat['id'] as String] = stars;
       total += stars;
     }
+    final sound = await StorageService.getSoundEnabled();
     if (mounted) {
       setState(() {
         _totalStars = total;
+        _soundEnabled = sound;
       });
+    }
+  }
+
+  Future<void> _toggleSound() async {
+    final next = !_soundEnabled;
+    await StorageService.setSoundEnabled(next);
+    if (mounted) {
+      setState(() => _soundEnabled = next);
+      ScaffoldMessenger.of(context).clearSnackBars();
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(next ? '🔊 Sound effects turned ON' : '🔇 Sound effects muted'),
+          duration: const Duration(milliseconds: 1400),
+          behavior: SnackBarBehavior.floating,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      );
     }
   }
 
   void _openGame(String categoryId) async {
     await Navigator.of(context).push(
       PageRouteBuilder(
-        transitionDuration: const Duration(milliseconds: 350),
+        transitionDuration: const Duration(milliseconds: 320),
         pageBuilder: (context, animation, secondaryAnimation) =>
             GameScreen(categoryId: categoryId),
         transitionsBuilder: (context, animation, secondaryAnimation, child) {
-          return SlideTransition(
-            position: Tween<Offset>(
-              begin: const Offset(1.0, 0.0),
-              end: Offset.zero,
-            ).animate(CurvedAnimation(parent: animation, curve: Curves.easeOut)),
+          return FadeTransition(
+            opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
             child: child,
           );
         },
       ),
     );
-    // Refresh stars after returning from game
-    _loadStars();
+    _loadState();
   }
 
   void _openParentArea() async {
@@ -110,87 +130,118 @@ class _HomeScreenState extends State<HomeScreen> {
       await Navigator.of(context).push(
         MaterialPageRoute(builder: (_) => const ParentAreaScreen()),
       );
-      // Refresh stars after returning from parent area (in case of reset)
-      _loadStars();
+      _loadState();
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1),
+      backgroundColor: const Color(0xFFFAF9F6),
       body: SafeArea(
         child: Column(
           children: [
-            // --- Top bar ---
+            // --- Top App Bar ---
             Padding(
-              padding: const EdgeInsets.fromLTRB(20, 16, 16, 0),
+              padding: const EdgeInsets.fromLTRB(20, 14, 18, 6),
               child: Row(
                 children: [
-                  // App logo
-                  Expanded(
-                    child: Image.asset(
-                      'assets/images/trans-logo.png',
-                      height: 56,
-                      alignment: Alignment.centerLeft,
-                      fit: BoxFit.contain,
-                    ),
+                  // App Logo
+                  Image.asset(
+                    'assets/images/trans-logo.png',
+                    height: 52,
+                    alignment: Alignment.centerLeft,
+                    fit: BoxFit.contain,
                   ),
-                  // Total star counter
-                  StarCounter(count: _totalStars),
-                  const SizedBox(width: 10),
-                  // Settings (parental gate) icon - low emphasis for child-safety
+                  const Spacer(),
+
+                  // Quick Sound Toggle Button
                   GestureDetector(
-                    onTap: _openParentArea,
+                    onTap: _toggleSound,
                     child: Container(
-                      padding: const EdgeInsets.all(8),
+                      padding: const EdgeInsets.all(9),
                       decoration: BoxDecoration(
                         color: Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.08),
-                            blurRadius: 6,
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8,
+                            offset: const Offset(0, 2),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        _soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                        size: 20,
+                        color: _soundEnabled ? const Color(0xFF455A64) : const Color(0xFFB0BEC5),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 10),
+
+                  // Total Star Counter Badge
+                  StarCounter(count: _totalStars),
+                  const SizedBox(width: 10),
+
+                  // Settings (Parental Gate) Icon
+                  GestureDetector(
+                    onTap: _openParentArea,
+                    child: Container(
+                      padding: const EdgeInsets.all(9),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.06),
+                            blurRadius: 8,
                             offset: const Offset(0, 2),
                           ),
                         ],
                       ),
                       child: const Icon(
                         Icons.settings_outlined,
-                        size: 22,
-                        color: Color(0xFF90A4AE),
+                        size: 20,
+                        color: Color(0xFF78909C),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 8),
-            // Subtitle
-            const Padding(
-              padding: EdgeInsets.symmetric(horizontal: 20),
+
+            // Friendly Subtitle
+            Padding(
+              padding: const EdgeInsets.fromLTRB(22, 4, 22, 12),
               child: Align(
                 alignment: Alignment.centerLeft,
-                child: Text(
-                  'What do you want to learn today?',
-                  style: TextStyle(
-                    fontSize: 15,
-                    color: Color(0xFF78909C),
-                    fontWeight: FontWeight.w500,
-                  ),
+                child: Row(
+                  children: [
+                    Text(
+                      'What do you want to learn today?',
+                      style: TextStyle(
+                        fontSize: 15,
+                        color: Colors.blueGrey.shade600,
+                        fontWeight: FontWeight.w600,
+                        letterSpacing: 0.2,
+                      ),
+                    ),
+                    const SizedBox(width: 6),
+                    const Text('✨', style: TextStyle(fontSize: 14)),
+                  ],
                 ),
               ),
             ),
-            const SizedBox(height: 16),
 
-            // --- Game cards grid ---
+            // --- Game Cards Grid ---
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16),
                 child: _buildGrid(),
               ),
             ),
-            const SizedBox(height: 16),
+            const SizedBox(height: 14),
           ],
         ),
       ),
@@ -198,60 +249,70 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Widget _buildGrid() {
-    // 5 cards: 2-column grid with the last card centered
     return Column(
       children: [
+        // Row 1: Colors & Fruits
         Expanded(
+          flex: 5,
           child: Row(
             children: [
-              _buildCard(_categories[0]),
-              const SizedBox(width: 12),
-              _buildCard(_categories[1]),
+              Expanded(child: _buildCard(_categories[0])),
+              const SizedBox(width: 14),
+              Expanded(child: _buildCard(_categories[1])),
             ],
           ),
         ),
-        const SizedBox(height: 12),
+        const SizedBox(height: 14),
+
+        // Row 2: Animals & Vehicles
         Expanded(
+          flex: 5,
           child: Row(
             children: [
-              _buildCard(_categories[2]),
-              const SizedBox(width: 12),
-              _buildCard(_categories[3]),
+              Expanded(child: _buildCard(_categories[2])),
+              const SizedBox(width: 14),
+              Expanded(child: _buildCard(_categories[3])),
             ],
           ),
         ),
-        const SizedBox(height: 12),
-        // 5th card centred
+        const SizedBox(height: 14),
+
+        // Row 3: Featured Shapes Card (Full-width hero banner)
         Expanded(
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              SizedBox(
-                width: (MediaQuery.of(context).size.width - 56) / 2,
-                child: _buildCard(_categories[4], expanded: false),
-              ),
-            ],
-          ),
+          flex: 3,
+          child: _buildFeaturedCard(_categories[4]),
         ),
       ],
     );
   }
 
-  Widget _buildCard(Map<String, dynamic> cat, {bool expanded = true}) {
-    final card = GameCard(
+  Widget _buildCard(Map<String, dynamic> cat) {
+    return GameCard(
       emoji: cat['emoji'] as String,
       title: cat['title'] as String,
-      cardColor: cat['color'] as Color,
+      subtitle: cat['subtitle'] as String?,
+      gradientColors: cat['gradient'] as List<Color>,
       shadowColor: cat['shadow'] as Color,
       totalStars: _starTotals[cat['id']] ?? 0,
       onTap: () => _openGame(cat['id'] as String),
     );
-    return expanded ? Expanded(child: card) : card;
+  }
+
+  Widget _buildFeaturedCard(Map<String, dynamic> cat) {
+    return GameCard(
+      emoji: cat['emoji'] as String,
+      title: cat['title'] as String,
+      subtitle: cat['subtitle'] as String?,
+      gradientColors: cat['gradient'] as List<Color>,
+      shadowColor: cat['shadow'] as Color,
+      totalStars: _starTotals[cat['id']] ?? 0,
+      isHorizontal: true,
+      onTap: () => _openGame(cat['id'] as String),
+    );
   }
 }
 
-/// Simple, calm adult math check (Parental Gate).
-/// Not styled for kids — no bright colors or game sounds.
+/// Sleek, minimalist adult math challenge (Parental Gate).
 class _ParentalGateDialog extends StatefulWidget {
   const _ParentalGateDialog();
 
@@ -313,42 +374,51 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog> {
   @override
   Widget build(BuildContext context) {
     return Dialog(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       backgroundColor: Colors.white,
+      elevation: 10,
       child: Padding(
         padding: const EdgeInsets.all(22),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Row(
+            Row(
               children: [
-                Icon(Icons.lock_outline, size: 20, color: Color(0xFF607D8B)),
-                SizedBox(width: 8),
-                Text(
+                Container(
+                  padding: const EdgeInsets.all(8),
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFF1F5F9),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: const Icon(Icons.lock_rounded, size: 20, color: Color(0xFF475569)),
+                ),
+                const SizedBox(width: 12),
+                const Text(
                   'Parents Only',
                   style: TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.w800,
-                    color: Color(0xFF37474F),
+                    color: Color(0xFF1E293B),
                   ),
                 ),
               ],
             ),
             const SizedBox(height: 8),
             const Text(
-              'Please solve this question to access settings:',
-              style: TextStyle(fontSize: 13, color: Color(0xFF78909C)),
+              'Please solve this simple math check to continue:',
+              style: TextStyle(fontSize: 13, color: Color(0xFF64748B)),
             ),
             const SizedBox(height: 16),
 
             // Math problem display
             Container(
+              width: double.infinity,
               padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
               decoration: BoxDecoration(
-                color: const Color(0xFFECEFF1),
-                borderRadius: BorderRadius.circular(12),
+                color: const Color(0xFFF8FAFC),
+                borderRadius: BorderRadius.circular(16),
                 border: Border.all(
-                  color: _isWrong ? const Color(0xFFEF5350) : const Color(0xFFCFD8DC),
+                  color: _isWrong ? const Color(0xFFEF4444) : const Color(0xFFE2E8F0),
                   width: 1.5,
                 ),
               ),
@@ -360,7 +430,7 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog> {
                     style: const TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
-                      color: Color(0xFF37474F),
+                      color: Color(0xFF334155),
                     ),
                   ),
                   Text(
@@ -369,8 +439,8 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog> {
                       fontSize: 26,
                       fontWeight: FontWeight.w900,
                       color: _input.isEmpty
-                          ? const Color(0xFF90A4AE)
-                          : const Color(0xFF1E88E5),
+                          ? const Color(0xFF94A3B8)
+                          : const Color(0xFF0284C7),
                     ),
                   ),
                 ],
@@ -381,13 +451,17 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog> {
                 padding: EdgeInsets.only(top: 8),
                 child: Text(
                   'Incorrect. Please try this new problem.',
-                  style: TextStyle(fontSize: 12, color: Color(0xFFEF5350), fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: Color(0xFFEF4444),
+                    fontWeight: FontWeight.w700,
+                  ),
                 ),
               ),
 
             const SizedBox(height: 18),
 
-            // Plain numeric keypad
+            // Keypad
             _buildKeypad(),
 
             const SizedBox(height: 16),
@@ -398,20 +472,35 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog> {
                 Expanded(
                   child: TextButton(
                     onPressed: () => Navigator.of(context).pop(false),
-                    child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+                    style: TextButton.styleFrom(
+                      padding: const EdgeInsets.symmetric(vertical: 13),
+                    ),
+                    child: const Text(
+                      'Cancel',
+                      style: TextStyle(
+                        color: Color(0xFF64748B),
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
                   ),
                 ),
-                const SizedBox(width: 8),
+                const SizedBox(width: 10),
                 Expanded(
                   child: ElevatedButton(
                     onPressed: _input.isNotEmpty ? _check : null,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: const Color(0xFF455A64),
+                      backgroundColor: const Color(0xFF334155),
                       foregroundColor: Colors.white,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                      padding: const EdgeInsets.symmetric(vertical: 12),
+                      disabledBackgroundColor: const Color(0xFFE2E8F0),
+                      elevation: 0,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+                      padding: const EdgeInsets.symmetric(vertical: 13),
                     ),
-                    child: const Text('Enter', style: TextStyle(fontWeight: FontWeight.w700)),
+                    child: const Text(
+                      'Enter',
+                      style: TextStyle(fontWeight: FontWeight.w800, fontSize: 15),
+                    ),
                   ),
                 ),
               ],
@@ -427,7 +516,7 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog> {
       children: [
         for (var row = 0; row < 3; row++)
           Padding(
-            padding: const EdgeInsets.only(bottom: 6),
+            padding: const EdgeInsets.only(bottom: 7),
             child: Row(
               children: [
                 for (var col = 1; col <= 3; col++)
@@ -469,21 +558,21 @@ class _ParentalGateDialogState extends State<_ParentalGateDialog> {
   Widget _keyBtn(String label, VoidCallback onTap) {
     return InkWell(
       onTap: onTap,
-      borderRadius: BorderRadius.circular(8),
+      borderRadius: BorderRadius.circular(12),
       child: Container(
-        height: 42,
+        height: 44,
         alignment: Alignment.center,
         decoration: BoxDecoration(
-          color: const Color(0xFFF5F7F8),
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: const Color(0xFFE0E0E0)),
+          color: const Color(0xFFF8FAFC),
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: const Color(0xFFE2E8F0)),
         ),
         child: Text(
           label,
           style: const TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Color(0xFF37474F),
+            color: Color(0xFF334155),
           ),
         ),
       ),

@@ -32,8 +32,15 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   int? _tappedIndex;
   bool _isAdvancing = false;
   int _lastPraiseIndex = -1;
+  bool _soundEnabled = true;
 
-  static const _praisePhrases = ['Yay! 🎉', 'Great! 🌟', 'Awesome! 🎊'];
+  static const _praisePhrases = [
+    'Yay! 🎉',
+    'Great Job! 🌟',
+    'Awesome! 🎊',
+    'Super Star! ⭐',
+    'You Did It! 🎈',
+  ];
 
   late AnimationController _shakeController;
   late Animation<double> _shakeAnim;
@@ -46,20 +53,34 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _allItems = _dataFor(widget.categoryId);
     _setupQuestions();
     _buildChoices();
+    _loadSoundState();
 
     _shakeController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 450),
+      duration: const Duration(milliseconds: 400),
     );
     _shakeAnim = Tween<double>(begin: 0, end: 1).animate(_shakeController);
 
     _correctController = AnimationController(
       vsync: this,
-      duration: const Duration(milliseconds: 300),
+      duration: const Duration(milliseconds: 350),
     );
-    _correctScale = Tween<double>(begin: 1.0, end: 1.15).animate(
+    _correctScale = Tween<double>(begin: 1.0, end: 1.14).animate(
       CurvedAnimation(parent: _correctController, curve: Curves.elasticOut),
     );
+  }
+
+  Future<void> _loadSoundState() async {
+    final sound = await StorageService.getSoundEnabled();
+    if (mounted) setState(() => _soundEnabled = sound);
+  }
+
+  Future<void> _toggleSound() async {
+    final next = !_soundEnabled;
+    await StorageService.setSoundEnabled(next);
+    if (mounted) {
+      setState(() => _soundEnabled = next);
+    }
   }
 
   @override
@@ -94,7 +115,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _choices = [target, pool[0], pool[1]]..shuffle();
   }
 
-  // ─── UI helpers ───────────────────────────────────────────────────────────
+  // ─── Theming helpers ──────────────────────────────────────────────────────
 
   String _categoryLabel() {
     const map = {
@@ -109,13 +130,24 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Color _categoryColor() {
     const map = {
-      'colors': Color(0xFFFF8A65),
-      'fruits': Color(0xFF66BB6A),
-      'animals': Color(0xFF42A5F5),
-      'vehicles': Color(0xFFAB47BC),
-      'shapes': Color(0xFFFFCA28),
+      'colors': Color(0xFFFF5277),
+      'fruits': Color(0xFF00B074),
+      'animals': Color(0xFFFF9500),
+      'vehicles': Color(0xFF0088FF),
+      'shapes': Color(0xFF8E24AA),
     };
-    return map[widget.categoryId] ?? const Color(0xFFFFAB40);
+    return map[widget.categoryId] ?? const Color(0xFFFF9500);
+  }
+
+  Color _backgroundColor() {
+    const map = {
+      'colors': Color(0xFFFFF7F9),
+      'fruits': Color(0xFFF3FAF6),
+      'animals': Color(0xFFFFFBF5),
+      'vehicles': Color(0xFFF4F8FD),
+      'shapes': Color(0xFFFAF4FC),
+    };
+    return map[widget.categoryId] ?? const Color(0xFFFAF9F6);
   }
 
   String _nextPraise() {
@@ -166,12 +198,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     if (!mounted) return;
 
     if (_currentIndex + 1 >= _questions.length) {
-      // Session complete — persist stars then show result
       StorageService.addStars(widget.categoryId, _sessionStars);
       SoundService.playComplete();
       Navigator.of(context).pushReplacement(
         PageRouteBuilder(
-          transitionDuration: const Duration(milliseconds: 500),
+          transitionDuration: const Duration(milliseconds: 450),
           pageBuilder: (context, animation, secondaryAnimation) => ResultScreen(
             categoryId: widget.categoryId,
             starsEarned: _sessionStars,
@@ -199,74 +230,135 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final target = _questions[_currentIndex];
     final accentColor = _categoryColor();
+    final bgColor = _backgroundColor();
 
     return Scaffold(
-      backgroundColor: const Color(0xFFFFF8E1),
+      backgroundColor: bgColor,
       body: SafeArea(
         child: Column(
           children: [
+            // --- Top Navigation Bar ---
             _TopBar(
               label: _categoryLabel(),
               accentColor: accentColor,
               sessionStars: _sessionStars,
+              soundEnabled: _soundEnabled,
+              onToggleSound: _toggleSound,
               onBack: () => Navigator.of(context).pop(),
             ),
+
+            // --- Progress Bar ---
             _ProgressBar(
               progress: (_currentIndex + 1) / _questions.length,
               accentColor: accentColor,
               current: _currentIndex + 1,
               total: _questions.length,
             ),
+
+            // --- Game Area ---
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 20),
+                padding: const EdgeInsets.symmetric(horizontal: 18),
                 child: Column(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    // Prompt
-                    Text(
-                      'Touch the ${target.name}!',
-                      style: const TextStyle(
-                        fontSize: 26,
-                        fontWeight: FontWeight.w900,
-                        color: Color(0xFF37474F),
+                    // Prompt with highlighted target keyword
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(22),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.04),
+                            blurRadius: 10,
+                            offset: const Offset(0, 3),
+                          ),
+                        ],
                       ),
-                      textAlign: TextAlign.center,
+                      child: RichText(
+                        textAlign: TextAlign.center,
+                        text: TextSpan(
+                          style: const TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.w800,
+                            color: Color(0xFF334155),
+                          ),
+                          children: [
+                            const TextSpan(text: 'Touch the '),
+                            TextSpan(
+                              text: target.name,
+                              style: TextStyle(
+                                color: accentColor,
+                                fontWeight: FontWeight.w900,
+                              ),
+                            ),
+                            const TextSpan(text: '! ✨'),
+                          ],
+                        ),
+                      ),
                     ),
 
-                    // Target emoji with correct scale anim
+                    // Target Emoji Card
                     ScaleTransition(
                       scale: _feedbackType == 'correct'
                           ? _correctScale
                           : const AlwaysStoppedAnimation(1.0),
                       child: _TargetEmoji(
                         emoji: target.emoji,
+                        accentColor: accentColor,
                         isCorrect: _feedbackType == 'correct',
                       ),
                     ),
 
-                    // Feedback text
+                    // Cheerful Floating Feedback Pill
                     AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 250),
+                      duration: const Duration(milliseconds: 220),
+                      transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
                       child: _feedbackType == null
-                          ? const SizedBox(height: 36, key: ValueKey('empty'))
-                          : Text(
-                              _feedbackType == 'correct'
-                                  ? _praiseText
-                                  : '😅 Try again!',
+                          ? const SizedBox(height: 44, key: ValueKey('empty'))
+                          : Container(
                               key: ValueKey(_feedbackType),
-                              style: TextStyle(
-                                fontSize: 30,
-                                fontWeight: FontWeight.w900,
+                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                              decoration: BoxDecoration(
                                 color: _feedbackType == 'correct'
-                                    ? const Color(0xFF4CAF50)
-                                    : const Color(0xFFEF5350),
+                                    ? const Color(0xFFE8F8EE)
+                                    : const Color(0xFFFFEBEE),
+                                borderRadius: BorderRadius.circular(24),
+                                border: Border.all(
+                                  color: _feedbackType == 'correct'
+                                      ? const Color(0xFF2E7D32)
+                                      : const Color(0xFFE53935),
+                                  width: 1.5,
+                                ),
+                                boxShadow: [
+                                  BoxShadow(
+                                    color: (_feedbackType == 'correct'
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFFE53935))
+                                        .withValues(alpha: 0.15),
+                                    blurRadius: 10,
+                                    offset: const Offset(0, 3),
+                                  ),
+                                ],
                               ),
-                              textAlign: TextAlign.center,
+                              child: Text(
+                                _feedbackType == 'correct'
+                                    ? _praiseText
+                                    : '😅 Try again!',
+                                style: TextStyle(
+                                  fontSize: 20,
+                                  fontWeight: FontWeight.w900,
+                                  color: _feedbackType == 'correct'
+                                      ? const Color(0xFF1B5E20)
+                                      : const Color(0xFFB71C1C),
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
                             ),
                     ),
 
-                    // Choice cards
+                    // 3 Answer Choices (One-handed thumb reach)
                     Row(
                       children: List.generate(3, (i) {
                         final item = _choices[i];
@@ -285,13 +377,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                           onTap: () => _onChoiceTapped(i),
                         );
 
-                        // Shake only the wrong tapped card
+                        // Shake animation on incorrect choice
                         if (cardState == CardState.wrong) {
                           card = AnimatedBuilder(
                             animation: _shakeAnim,
-                            builder: (_, child) => Transform.translate(
+                            builder: (context, child) => Transform.translate(
                               offset: Offset(
-                                  sin(_shakeAnim.value * pi * 7) * 9, 0),
+                                sin(_shakeAnim.value * pi * 8) * 8, 0,
+                              ),
                               child: child,
                             ),
                             child: card,
@@ -310,7 +403,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                       }),
                     ),
 
-                    const SizedBox(height: 8),
+                    const SizedBox(height: 4),
                   ],
                 ),
               ),
@@ -328,21 +421,26 @@ class _TopBar extends StatelessWidget {
   final String label;
   final Color accentColor;
   final int sessionStars;
+  final bool soundEnabled;
+  final VoidCallback onToggleSound;
   final VoidCallback onBack;
 
   const _TopBar({
     required this.label,
     required this.accentColor,
     required this.sessionStars,
+    required this.soundEnabled,
+    required this.onToggleSound,
     required this.onBack,
   });
 
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 12, 16, 0),
+      padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Row(
         children: [
+          // Back Button
           GestureDetector(
             onTap: onBack,
             child: Container(
@@ -352,27 +450,67 @@ class _TopBar extends StatelessWidget {
                 shape: BoxShape.circle,
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.08),
+                    color: Colors.black.withValues(alpha: 0.06),
                     blurRadius: 8,
+                    offset: const Offset(0, 2),
                   ),
                 ],
               ),
-              child: const Icon(Icons.arrow_back_ios_new,
-                  size: 16, color: Color(0xFF37474F)),
+              child: const Icon(
+                Icons.arrow_back_ios_new_rounded,
+                size: 16,
+                color: Color(0xFF475569),
+              ),
             ),
           ),
           const SizedBox(width: 12),
-          Text(
-            label.toUpperCase(),
-            style: TextStyle(
-              fontSize: 20,
-              fontWeight: FontWeight.w900,
-              color: accentColor,
-              letterSpacing: 2,
+
+          // Category Pill
+          Container(
+            padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+            decoration: BoxDecoration(
+              color: accentColor.withValues(alpha: 0.12),
+              borderRadius: BorderRadius.circular(16),
+            ),
+            child: Text(
+              label.toUpperCase(),
+              style: TextStyle(
+                fontSize: 14,
+                fontWeight: FontWeight.w900,
+                color: accentColor,
+                letterSpacing: 1.5,
+              ),
             ),
           ),
           const Spacer(),
-          StarCounter(count: sessionStars),
+
+          // Quick Sound Toggle
+          GestureDetector(
+            onTap: onToggleSound,
+            child: Container(
+              padding: const EdgeInsets.all(8),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withValues(alpha: 0.06),
+                    blurRadius: 8,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: Icon(
+                soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                size: 18,
+                color: soundEnabled ? const Color(0xFF475569) : const Color(0xFF94A3B8),
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+
+          // Session Star Counter
+          StarCounter(count: sessionStars, isCompact: true),
         ],
       ),
     );
@@ -395,29 +533,42 @@ class _ProgressBar extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(16, 10, 16, 0),
+      padding: const EdgeInsets.fromLTRB(20, 8, 20, 4),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.end,
         children: [
-          Text(
-            '$current / $total',
-            style: TextStyle(
-              fontSize: 12,
-              fontWeight: FontWeight.w700,
-              color: Colors.grey.shade500,
-            ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              Text(
+                'Question $current of $total',
+                style: const TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w700,
+                  color: Color(0xFF64748B),
+                ),
+              ),
+              Text(
+                '${(progress * 100).toInt()}%',
+                style: TextStyle(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w800,
+                  color: accentColor,
+                ),
+              ),
+            ],
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 6),
           ClipRRect(
-            borderRadius: BorderRadius.circular(6),
+            borderRadius: BorderRadius.circular(8),
             child: TweenAnimationBuilder<double>(
               tween: Tween(begin: 0, end: progress),
-              duration: const Duration(milliseconds: 400),
+              duration: const Duration(milliseconds: 350),
               curve: Curves.easeOut,
               builder: (context, value, child) => LinearProgressIndicator(
                 value: value,
-                minHeight: 10,
-                backgroundColor: Colors.grey.shade200,
+                minHeight: 8,
+                backgroundColor: const Color(0xFFE2E8F0),
                 valueColor: AlwaysStoppedAnimation<Color>(accentColor),
               ),
             ),
@@ -430,9 +581,14 @@ class _ProgressBar extends StatelessWidget {
 
 class _TargetEmoji extends StatelessWidget {
   final String emoji;
+  final Color accentColor;
   final bool isCorrect;
 
-  const _TargetEmoji({required this.emoji, required this.isCorrect});
+  const _TargetEmoji({
+    required this.emoji,
+    required this.accentColor,
+    required this.isCorrect,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -440,22 +596,22 @@ class _TargetEmoji extends StatelessWidget {
       duration: const Duration(milliseconds: 300),
       padding: const EdgeInsets.all(28),
       decoration: BoxDecoration(
-        color: isCorrect
-            ? const Color(0xFF4CAF50).withValues(alpha: 0.12)
-            : Colors.white,
+        color: Colors.white,
         shape: BoxShape.circle,
+        border: Border.all(
+          color: isCorrect ? const Color(0xFF4CAF50) : accentColor.withValues(alpha: 0.15),
+          width: isCorrect ? 4 : 2,
+        ),
         boxShadow: [
           BoxShadow(
-            color: isCorrect
-                ? const Color(0xFF4CAF50).withValues(alpha: 0.25)
-                : Colors.black.withValues(alpha: 0.08),
-            blurRadius: 24,
-            spreadRadius: isCorrect ? 4 : 0,
+            color: (isCorrect ? const Color(0xFF4CAF50) : accentColor).withValues(alpha: isCorrect ? 0.25 : 0.1),
+            blurRadius: isCorrect ? 24 : 16,
+            spreadRadius: isCorrect ? 6 : 2,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Text(emoji, style: const TextStyle(fontSize: 80)),
+      child: Text(emoji, style: const TextStyle(fontSize: 82)),
     );
   }
 }

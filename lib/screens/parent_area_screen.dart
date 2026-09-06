@@ -162,7 +162,11 @@ class _ParentAreaScreenState extends State<ParentAreaScreen> {
         elevation: 0.5,
         title: const Text(
           'For Parents',
-          style: TextStyle(fontWeight: FontWeight.w800, fontSize: 19),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            fontSize: 19,
+            color: Color(0xFF37474F),
+          ),
         ),
       ),
       body: _loading
