@@ -31,4 +31,13 @@ class StorageService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_soundEnabledKey, value);
   }
+
+  /// Reset stars for all categories back to 0.
+  static Future<void> resetAllStars() async {
+    final prefs = await SharedPreferences.getInstance();
+    const categories = ['colors', 'fruits', 'animals', 'vehicles', 'shapes'];
+    for (final cat in categories) {
+      await prefs.remove(starsKey(cat));
+    }
+  }
 }

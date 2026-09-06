@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../widgets/game_card.dart';
 import '../widgets/star_counter.dart';
@@ -5,7 +6,7 @@ import '../services/storage_service.dart';
 import 'game_screen.dart';
 import 'parent_area_screen.dart';
 
-/// Home screen — shows all 5 game category cards.
+/// Home screen — shows all 5 game category cards and parental settings access.
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
 
@@ -98,10 +99,20 @@ class _HomeScreenState extends State<HomeScreen> {
     _loadStars();
   }
 
-  void _openParentArea() {
-    Navigator.of(context).push(
-      MaterialPageRoute(builder: (_) => const ParentAreaScreen()),
+  void _openParentArea() async {
+    final passedGate = await showDialog<bool>(
+      context: context,
+      barrierDismissible: true,
+      builder: (_) => const _ParentalGateDialog(),
     );
+
+    if (passedGate == true && mounted) {
+      await Navigator.of(context).push(
+        MaterialPageRoute(builder: (_) => const ParentAreaScreen()),
+      );
+      // Refresh stars after returning from parent area (in case of reset)
+      _loadStars();
+    }
   }
 
   @override
@@ -128,7 +139,7 @@ class _HomeScreenState extends State<HomeScreen> {
                   // Total star counter
                   StarCounter(count: _totalStars),
                   const SizedBox(width: 10),
-                  // Settings (parental gate) icon
+                  // Settings (parental gate) icon - low emphasis for child-safety
                   GestureDetector(
                     onTap: _openParentArea,
                     child: Container(
@@ -236,5 +247,246 @@ class _HomeScreenState extends State<HomeScreen> {
       onTap: () => _openGame(cat['id'] as String),
     );
     return expanded ? Expanded(child: card) : card;
+  }
+}
+
+/// Simple, calm adult math check (Parental Gate).
+/// Not styled for kids — no bright colors or game sounds.
+class _ParentalGateDialog extends StatefulWidget {
+  const _ParentalGateDialog();
+
+  @override
+  State<_ParentalGateDialog> createState() => _ParentalGateDialogState();
+}
+
+class _ParentalGateDialogState extends State<_ParentalGateDialog> {
+  late int _num1;
+  late int _num2;
+  late int _answer;
+  String _input = '';
+  bool _isWrong = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _newProblem();
+  }
+
+  void _newProblem() {
+    final r = Random();
+    _num1 = 6 + r.nextInt(9); // 6–14
+    _num2 = 7 + r.nextInt(9); // 7–15
+    _answer = _num1 + _num2;
+    _input = '';
+    _isWrong = false;
+  }
+
+  void _appendDigit(int digit) {
+    if (_input.length >= 3) return;
+    setState(() {
+      _input += '$digit';
+      _isWrong = false;
+    });
+  }
+
+  void _backspace() {
+    if (_input.isNotEmpty) {
+      setState(() {
+        _input = _input.substring(0, _input.length - 1);
+        _isWrong = false;
+      });
+    }
+  }
+
+  void _check() {
+    final entered = int.tryParse(_input);
+    if (entered == _answer) {
+      Navigator.of(context).pop(true);
+    } else {
+      setState(() {
+        _isWrong = true;
+        _newProblem();
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      backgroundColor: Colors.white,
+      child: Padding(
+        padding: const EdgeInsets.all(22),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Row(
+              children: [
+                Icon(Icons.lock_outline, size: 20, color: Color(0xFF607D8B)),
+                SizedBox(width: 8),
+                Text(
+                  'Parents Only',
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: Color(0xFF37474F),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 8),
+            const Text(
+              'Please solve this question to access settings:',
+              style: TextStyle(fontSize: 13, color: Color(0xFF78909C)),
+            ),
+            const SizedBox(height: 16),
+
+            // Math problem display
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 20),
+              decoration: BoxDecoration(
+                color: const Color(0xFFECEFF1),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                  color: _isWrong ? const Color(0xFFEF5350) : const Color(0xFFCFD8DC),
+                  width: 1.5,
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Text(
+                    '$_num1 + $_num2 = ',
+                    style: const TextStyle(
+                      fontSize: 24,
+                      fontWeight: FontWeight.w700,
+                      color: Color(0xFF37474F),
+                    ),
+                  ),
+                  Text(
+                    _input.isEmpty ? '?' : _input,
+                    style: TextStyle(
+                      fontSize: 26,
+                      fontWeight: FontWeight.w900,
+                      color: _input.isEmpty
+                          ? const Color(0xFF90A4AE)
+                          : const Color(0xFF1E88E5),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            if (_isWrong)
+              const Padding(
+                padding: EdgeInsets.only(top: 8),
+                child: Text(
+                  'Incorrect. Please try this new problem.',
+                  style: TextStyle(fontSize: 12, color: Color(0xFFEF5350), fontWeight: FontWeight.w600),
+                ),
+              ),
+
+            const SizedBox(height: 18),
+
+            // Plain numeric keypad
+            _buildKeypad(),
+
+            const SizedBox(height: 16),
+
+            // Actions
+            Row(
+              children: [
+                Expanded(
+                  child: TextButton(
+                    onPressed: () => Navigator.of(context).pop(false),
+                    child: const Text('Cancel', style: TextStyle(color: Color(0xFF78909C))),
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: ElevatedButton(
+                    onPressed: _input.isNotEmpty ? _check : null,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: const Color(0xFF455A64),
+                      foregroundColor: Colors.white,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                      padding: const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    child: const Text('Enter', style: TextStyle(fontWeight: FontWeight.w700)),
+                  ),
+                ),
+              ],
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildKeypad() {
+    return Column(
+      children: [
+        for (var row = 0; row < 3; row++)
+          Padding(
+            padding: const EdgeInsets.only(bottom: 6),
+            child: Row(
+              children: [
+                for (var col = 1; col <= 3; col++)
+                  Expanded(
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: _keyBtn('${row * 3 + col}', () => _appendDigit(row * 3 + col)),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        Row(
+          children: [
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _keyBtn('C', () => setState(() => _input = '')),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _keyBtn('0', () => _appendDigit(0)),
+              ),
+            ),
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4),
+                child: _keyBtn('⌫', _backspace),
+              ),
+            ),
+          ],
+        ),
+      ],
+    );
+  }
+
+  Widget _keyBtn(String label, VoidCallback onTap) {
+    return InkWell(
+      onTap: onTap,
+      borderRadius: BorderRadius.circular(8),
+      child: Container(
+        height: 42,
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          color: const Color(0xFFF5F7F8),
+          borderRadius: BorderRadius.circular(8),
+          border: Border.all(color: const Color(0xFFE0E0E0)),
+        ),
+        child: Text(
+          label,
+          style: const TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Color(0xFF37474F),
+          ),
+        ),
+      ),
+    );
   }
 }

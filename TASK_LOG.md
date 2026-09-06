@@ -16,5 +16,12 @@ One line per completed task, in order.
 2026-09-06 | Phase 1 | Created HomeScreen with 5-card grid, star totals, slide nav
 2026-09-06 | Phase 1 | Created GameScreen stub, ResultScreen stub, ParentAreaScreen stub
 2026-09-06 | Phase 1 | Updated main.dart: theme (warm orange/cream), portrait lock, routes to Splash
-2026-09-06 | Phase 1 | flutter analyze: no issues
-2026-09-06 | Phase 1 | Git commit: Phase 1 foundation complete
+2026-09-06 | Phase 1 | Fixed MainActivity package and manifest label to "Giggle Go!"
+2026-09-06 | Phase 2 | Built complete GameScreen engine: 10-question loop, 3 shuffled choices, praise phrases, shake animation
+2026-09-06 | Phase 2 | Implemented AnswerCard widget with stateful feedback styles
+2026-09-06 | Phase 3 | Wired all 5 categories (Colors, Fruits, Animals, Vehicles, Shapes) to GameScreen
+2026-09-06 | Phase 4 | Created SoundService for audio hooks; added persistence & reset to StorageService
+2026-09-06 | Phase 5 | Built ResultScreen with animated trophy, star tally, and Play Again / Home navigation
+2026-09-06 | Phase 5 | Built Parental Gate math check on HomeScreen settings icon
+2026-09-06 | Phase 5 | Built ParentAreaScreen: sound toggle, star breakdown, reset progress, COPPA privacy notice
+2026-09-06 | Polish  | Resolved all flutter analyze warnings and deprecations (0 issues)
