@@ -312,50 +312,54 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                     ),
 
                     // Cheerful Floating Feedback Pill
-                    AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 220),
-                      transitionBuilder: (child, anim) => ScaleTransition(scale: anim, child: child),
-                      child: _feedbackType == null
-                          ? const SizedBox(height: 44, key: ValueKey('empty'))
-                          : Container(
-                              key: ValueKey(_feedbackType),
-                              padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: _feedbackType == 'correct'
-                                    ? const Color(0xFFE8F8EE)
-                                    : const Color(0xFFFFEBEE),
-                                borderRadius: BorderRadius.circular(24),
-                                border: Border.all(
-                                  color: _feedbackType == 'correct'
-                                      ? const Color(0xFF2E7D32)
-                                      : const Color(0xFFE53935),
-                                  width: 1.5,
-                                ),
-                                boxShadow: [
-                                  BoxShadow(
-                                    color: (_feedbackType == 'correct'
-                                            ? const Color(0xFF2E7D32)
-                                            : const Color(0xFFE53935))
-                                        .withValues(alpha: 0.15),
-                                    blurRadius: 10,
-                                    offset: const Offset(0, 3),
+                    SizedBox(
+                      height: 48,
+                      child: Center(
+                        child: AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 180),
+                          child: _feedbackType == null
+                              ? const SizedBox.shrink(key: ValueKey('empty'))
+                              : Container(
+                                  key: ValueKey(_feedbackType),
+                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                  decoration: BoxDecoration(
+                                    color: _feedbackType == 'correct'
+                                        ? const Color(0xFFE8F8EE)
+                                        : const Color(0xFFFFEBEE),
+                                    borderRadius: BorderRadius.circular(24),
+                                    border: Border.all(
+                                      color: _feedbackType == 'correct'
+                                          ? const Color(0xFF2E7D32)
+                                          : const Color(0xFFE53935),
+                                      width: 1.5,
+                                    ),
+                                    boxShadow: [
+                                      BoxShadow(
+                                        color: (_feedbackType == 'correct'
+                                                ? const Color(0xFF2E7D32)
+                                                : const Color(0xFFE53935))
+                                            .withValues(alpha: 0.15),
+                                        blurRadius: 10,
+                                        offset: const Offset(0, 3),
+                                      ),
+                                    ],
                                   ),
-                                ],
-                              ),
-                              child: Text(
-                                _feedbackType == 'correct'
-                                    ? _praiseText
-                                    : '😅 Try again!',
-                                style: TextStyle(
-                                  fontSize: 20,
-                                  fontWeight: FontWeight.w900,
-                                  color: _feedbackType == 'correct'
-                                      ? const Color(0xFF1B5E20)
-                                      : const Color(0xFFB71C1C),
+                                  child: Text(
+                                    _feedbackType == 'correct'
+                                        ? _praiseText
+                                        : '😅 Try again!',
+                                    style: TextStyle(
+                                      fontSize: 18,
+                                      fontWeight: FontWeight.w900,
+                                      color: _feedbackType == 'correct'
+                                          ? const Color(0xFF1B5E20)
+                                          : const Color(0xFFB71C1C),
+                                    ),
+                                    textAlign: TextAlign.center,
+                                  ),
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
+                        ),
+                      ),
                     ),
 
                     // 3 Answer Choices (One-handed thumb reach)
