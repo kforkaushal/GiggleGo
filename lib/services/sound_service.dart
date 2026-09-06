@@ -7,7 +7,10 @@ class SoundService {
   static AudioPlayer? _player;
 
   static AudioPlayer get _audioPlayer {
-    _player ??= AudioPlayer();
+    if (_player == null) {
+      _player = AudioPlayer();
+      _player!.setPlayerMode(PlayerMode.lowLatency);
+    }
     return _player!;
   }
 
@@ -15,15 +18,18 @@ class SoundService {
     final enabled = await StorageService.getSoundEnabled();
     if (!enabled) return;
     try {
+      // audioplayers AssetSource assumes assets/ folder prefix by default
+      await _audioPlayer.stop();
       await _audioPlayer.play(AssetSource('sounds/$fileName'));
     } catch (_) {
-      // Sound file not yet available — added in Phase 4.
+      // Graceful fallback if audio is not supported on current device
     }
   }
 
-  static Future<void> playCorrect() => _play('correct.mp3');
-  static Future<void> playWrong() => _play('wrong.mp3');
-  static Future<void> playComplete() => _play('complete.mp3');
+  static Future<void> playCorrect() => _play('correct.wav');
+  static Future<void> playWrong() => _play('wrong.wav');
+  static Future<void> playComplete() => _play('complete.wav');
+  static Future<void> playPop() => _play('pop.wav');
 
   static void disposePlayer() {
     _player?.dispose();

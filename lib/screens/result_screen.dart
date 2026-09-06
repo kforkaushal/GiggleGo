@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../widgets/confetti_overlay.dart';
+import '../services/sound_service.dart';
 import 'game_screen.dart';
 
 class ResultScreen extends StatefulWidget {
@@ -85,14 +87,6 @@ class _ResultScreenState extends State<ResultScreen>
 
   Color get _accentColor => _gradientColors.first;
 
-  String get _resultEmoji {
-    final pct = widget.starsEarned / widget.totalQuestions;
-    if (pct == 1.0) return '🏆';
-    if (pct >= 0.7) return '🌟';
-    if (pct >= 0.5) return '🎉';
-    return '💪';
-  }
-
   String get _resultTitle {
     final pct = widget.starsEarned / widget.totalQuestions;
     if (pct == 1.0) return 'Perfect Score!';
@@ -127,58 +121,67 @@ class _ResultScreenState extends State<ResultScreen>
 
   @override
   Widget build(BuildContext context) {
+    final pct = widget.starsEarned / widget.totalQuestions;
+
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
       body: SafeArea(
-        child: FadeTransition(
-          opacity: _fadeAnim,
-          child: ScaleTransition(
-            scale: _scaleAnim,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 24),
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  // Celebration Badge
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: _accentColor.withValues(alpha: 0.12),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      _categoryName.toUpperCase(),
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w900,
-                        color: _accentColor,
-                        letterSpacing: 2,
+        child: ConfettiBurst(
+          isPlaying: true,
+          child: FadeTransition(
+            opacity: _fadeAnim,
+            child: ScaleTransition(
+              scale: _scaleAnim,
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: [
+                    // Celebration Badge
+                    Container(
+                      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
+                      decoration: BoxDecoration(
+                        color: _accentColor.withValues(alpha: 0.12),
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: Text(
+                        _categoryName.toUpperCase(),
+                        style: TextStyle(
+                          fontSize: 14,
+                          fontWeight: FontWeight.w900,
+                          color: _accentColor,
+                          letterSpacing: 2,
+                        ),
                       ),
                     ),
-                  ),
-                  const SizedBox(height: 18),
+                    const SizedBox(height: 18),
 
-                  // Trophy / Mascot Halo
-                  Container(
-                    padding: const EdgeInsets.all(26),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      shape: BoxShape.circle,
-                      boxShadow: [
-                        BoxShadow(
-                          color: _accentColor.withValues(alpha: 0.2),
-                          blurRadius: 30,
-                          spreadRadius: 8,
-                          offset: const Offset(0, 8),
+                    // Trophy / Mascot Halo
+                    Container(
+                      padding: const EdgeInsets.all(22),
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: _accentColor.withValues(alpha: 0.25),
+                          width: 3,
                         ),
-                      ],
+                        boxShadow: [
+                          BoxShadow(
+                            color: _accentColor.withValues(alpha: 0.25),
+                            blurRadius: 32,
+                            spreadRadius: 8,
+                            offset: const Offset(0, 8),
+                          ),
+                        ],
+                      ),
+                      child: Icon(
+                        pct >= 0.7 ? Icons.emoji_events_rounded : Icons.star_rounded,
+                        size: 80,
+                        color: const Color(0xFFFFB300),
+                      ),
                     ),
-                    child: Text(
-                      _resultEmoji,
-                      style: const TextStyle(fontSize: 84),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
+                    const SizedBox(height: 20),
 
                   // Title & Subtitle
                   Text(
@@ -236,12 +239,12 @@ class _ResultScreenState extends State<ResultScreen>
                                   return AnimatedScale(
                                     scale: isEarned ? 1.05 : 0.9,
                                     duration: const Duration(milliseconds: 200),
-                                    child: Text(
-                                      isEarned ? '⭐' : '☆',
-                                      style: TextStyle(
-                                        fontSize: 26,
-                                        color: isEarned ? const Color(0xFFFFB300) : const Color(0xFFCBD5E1),
-                                      ),
+                                    child: Icon(
+                                      Icons.star_rounded,
+                                      size: 30,
+                                      color: isEarned
+                                          ? const Color(0xFFFFB300)
+                                          : const Color(0xFFE2E8F0),
                                     ),
                                   );
                                 },
@@ -297,8 +300,9 @@ class _ResultScreenState extends State<ResultScreen>
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }
 
 class _ActionButton extends StatefulWidget {
@@ -332,7 +336,10 @@ class _ActionButtonState extends State<_ActionButton> {
   @override
   Widget build(BuildContext context) {
     return GestureDetector(
-      onTapDown: (_) => setState(() => _pressed = true),
+      onTapDown: (_) {
+        setState(() => _pressed = true);
+        SoundService.playPop();
+      },
       onTapUp: (_) {
         setState(() => _pressed = false);
         widget.onTap();

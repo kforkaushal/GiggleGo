@@ -9,5 +9,9 @@ void main() {
     await tester.pumpWidget(const GiggleGoApp());
     // The app should render without throwing.
     expect(find.byType(MaterialApp), findsOneWidget);
+
+    // Fast forward past splash timer
+    await tester.pump(const Duration(milliseconds: 2500));
+    await tester.pumpAndSettle();
   });
 }

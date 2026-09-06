@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
+import '../widgets/game_graphic.dart';
 
 /// Parent Area screen — reached only through the parental gate.
 /// Contains audio settings, star summary, progress reset, and privacy policy.
@@ -17,11 +18,11 @@ class _ParentAreaScreenState extends State<ParentAreaScreen> {
   int _totalStars = 0;
 
   static const List<Map<String, String>> _categories = [
-    {'id': 'colors', 'name': 'Colors', 'emoji': '🌈'},
-    {'id': 'fruits', 'name': 'Fruits', 'emoji': '🍎'},
-    {'id': 'animals', 'name': 'Animals', 'emoji': '🦁'},
-    {'id': 'vehicles', 'name': 'Vehicles', 'emoji': '🚗'},
-    {'id': 'shapes', 'name': 'Shapes', 'emoji': '⭐'},
+    {'id': 'colors', 'name': 'Colors', 'graphic': 'pink'},
+    {'id': 'fruits', 'name': 'Fruits', 'graphic': 'apple'},
+    {'id': 'animals', 'name': 'Animals', 'graphic': 'lion'},
+    {'id': 'vehicles', 'name': 'Vehicles', 'graphic': 'car'},
+    {'id': 'shapes', 'name': 'Shapes', 'graphic': 'star'},
   ];
 
   @override
@@ -217,7 +218,7 @@ class _ParentAreaScreenState extends State<ParentAreaScreen> {
                               child: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
-                                  const Text('⭐', style: TextStyle(fontSize: 14)),
+                                  const Icon(Icons.star_rounded, color: Color(0xFFF57F17), size: 20),
                                   const SizedBox(width: 4),
                                   Text(
                                     '$_totalStars',
@@ -239,7 +240,11 @@ class _ParentAreaScreenState extends State<ParentAreaScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Row(
                               children: [
-                                Text(cat['emoji']!, style: const TextStyle(fontSize: 18)),
+                                GameGraphic(
+                                  name: cat['graphic']!,
+                                  category: cat['id']!,
+                                  size: 24,
+                                ),
                                 const SizedBox(width: 10),
                                 Text(
                                   cat['name']!,
@@ -249,12 +254,19 @@ class _ParentAreaScreenState extends State<ParentAreaScreen> {
                                   ),
                                 ),
                                 const Spacer(),
-                                Text(
-                                  '$count ⭐',
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.w700,
-                                    color: Color(0xFF78909C),
-                                  ),
+                                Row(
+                                  mainAxisSize: MainAxisSize.min,
+                                  children: [
+                                    Text(
+                                      '$count',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w700,
+                                        color: Color(0xFF78909C),
+                                      ),
+                                    ),
+                                    const SizedBox(width: 3),
+                                    const Icon(Icons.star_rounded, color: Color(0xFFFFB300), size: 16),
+                                  ],
                                 ),
                               ],
                             ),

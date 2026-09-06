@@ -83,8 +83,8 @@ class _StarCounterState extends State<StarCounter>
         child: Row(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text('⭐', style: TextStyle(fontSize: 16)),
-            const SizedBox(width: 5),
+            const Icon(Icons.star_rounded, color: Colors.white, size: 20),
+            const SizedBox(width: 4),
             Text(
               '${widget.count}',
               style: TextStyle(

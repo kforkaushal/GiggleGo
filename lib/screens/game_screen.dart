@@ -10,6 +10,8 @@ import '../services/storage_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/star_counter.dart';
 import '../widgets/answer_card.dart';
+import '../widgets/game_graphic.dart';
+import '../widgets/confetti_overlay.dart';
 import 'result_screen.dart';
 
 class GameScreen extends StatefulWidget {
@@ -46,6 +48,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   late Animation<double> _shakeAnim;
   late AnimationController _correctController;
   late Animation<double> _correctScale;
+  late AnimationController _idleController;
+  late Animation<double> _idleScale;
 
   @override
   void initState() {
@@ -68,6 +72,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _correctScale = Tween<double>(begin: 1.0, end: 1.14).animate(
       CurvedAnimation(parent: _correctController, curve: Curves.elasticOut),
     );
+
+    _idleController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 1800),
+    )..repeat(reverse: true);
+    _idleScale = Tween<double>(begin: 0.96, end: 1.04).animate(
+      CurvedAnimation(parent: _idleController, curve: Curves.easeInOutSine),
+    );
   }
 
   Future<void> _loadSoundState() async {
@@ -87,6 +99,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   void dispose() {
     _shakeController.dispose();
     _correctController.dispose();
+    _idleController.dispose();
     super.dispose();
   }
 
@@ -255,160 +268,163 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
               total: _questions.length,
             ),
 
-            // --- Game Area ---
+            // --- Game Area with Confetti Burst ---
             Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    // Prompt with highlighted target keyword
-                    Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        borderRadius: BorderRadius.circular(22),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.04),
-                            blurRadius: 10,
-                            offset: const Offset(0, 3),
-                          ),
-                        ],
-                      ),
-                      child: RichText(
-                        textAlign: TextAlign.center,
-                        text: TextSpan(
-                          style: const TextStyle(
-                            fontSize: 22,
-                            fontWeight: FontWeight.w800,
-                            color: Color(0xFF334155),
-                          ),
-                          children: [
-                            const TextSpan(text: 'Touch the '),
-                            TextSpan(
-                              text: target.name,
-                              style: TextStyle(
-                                color: accentColor,
-                                fontWeight: FontWeight.w900,
-                              ),
+              child: ConfettiBurst(
+                isPlaying: _feedbackType == 'correct',
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(horizontal: 18),
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Prompt with highlighted target keyword
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(22),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.04),
+                              blurRadius: 10,
+                              offset: const Offset(0, 3),
                             ),
-                            const TextSpan(text: '! ✨'),
                           ],
                         ),
-                      ),
-                    ),
-
-                    // Target Emoji Card
-                    ScaleTransition(
-                      scale: _feedbackType == 'correct'
-                          ? _correctScale
-                          : const AlwaysStoppedAnimation(1.0),
-                      child: _TargetEmoji(
-                        emoji: target.emoji,
-                        accentColor: accentColor,
-                        isCorrect: _feedbackType == 'correct',
-                      ),
-                    ),
-
-                    // Cheerful Floating Feedback Pill
-                    SizedBox(
-                      height: 48,
-                      child: Center(
-                        child: AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 180),
-                          child: _feedbackType == null
-                              ? const SizedBox.shrink(key: ValueKey('empty'))
-                              : Container(
-                                  key: ValueKey(_feedbackType),
-                                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
-                                  decoration: BoxDecoration(
-                                    color: _feedbackType == 'correct'
-                                        ? const Color(0xFFE8F8EE)
-                                        : const Color(0xFFFFEBEE),
-                                    borderRadius: BorderRadius.circular(24),
-                                    border: Border.all(
-                                      color: _feedbackType == 'correct'
-                                          ? const Color(0xFF2E7D32)
-                                          : const Color(0xFFE53935),
-                                      width: 1.5,
-                                    ),
-                                    boxShadow: [
-                                      BoxShadow(
-                                        color: (_feedbackType == 'correct'
-                                                ? const Color(0xFF2E7D32)
-                                                : const Color(0xFFE53935))
-                                            .withValues(alpha: 0.15),
-                                        blurRadius: 10,
-                                        offset: const Offset(0, 3),
-                                      ),
-                                    ],
-                                  ),
-                                  child: Text(
-                                    _feedbackType == 'correct'
-                                        ? _praiseText
-                                        : '😅 Try again!',
-                                    style: TextStyle(
-                                      fontSize: 18,
-                                      fontWeight: FontWeight.w900,
-                                      color: _feedbackType == 'correct'
-                                          ? const Color(0xFF1B5E20)
-                                          : const Color(0xFFB71C1C),
-                                    ),
-                                    textAlign: TextAlign.center,
-                                  ),
+                        child: RichText(
+                          textAlign: TextAlign.center,
+                          text: TextSpan(
+                            style: const TextStyle(
+                              fontSize: 22,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF334155),
+                            ),
+                            children: [
+                              const TextSpan(text: 'Touch the '),
+                              TextSpan(
+                                text: target.name,
+                                style: TextStyle(
+                                  color: accentColor,
+                                  fontWeight: FontWeight.w900,
                                 ),
+                              ),
+                              const TextSpan(text: '! ✨'),
+                            ],
+                          ),
                         ),
                       ),
-                    ),
 
-                    // 3 Answer Choices (One-handed thumb reach)
-                    Row(
-                      children: List.generate(3, (i) {
-                        final item = _choices[i];
-                        final isSelected = _tappedIndex == i;
+                      // Target Illustrated Graphic with gentle idle breathing & victory bounce
+                      ScaleTransition(
+                        scale: _feedbackType == 'correct'
+                            ? _correctScale
+                            : _idleScale,
+                        child: _TargetGraphic(
+                          item: target,
+                          accentColor: accentColor,
+                          isCorrect: _feedbackType == 'correct',
+                        ),
+                      ),
 
-                        CardState cardState = CardState.idle;
-                        if (isSelected && _feedbackType == 'correct') {
-                          cardState = CardState.correct;
-                        } else if (isSelected && _feedbackType == 'wrong') {
-                          cardState = CardState.wrong;
-                        }
-
-                        Widget card = AnswerCard(
-                          item: item,
-                          state: cardState,
-                          onTap: () => _onChoiceTapped(i),
-                        );
-
-                        // Shake animation on incorrect choice
-                        if (cardState == CardState.wrong) {
-                          card = AnimatedBuilder(
-                            animation: _shakeAnim,
-                            builder: (context, child) => Transform.translate(
-                              offset: Offset(
-                                sin(_shakeAnim.value * pi * 8) * 8, 0,
-                              ),
-                              child: child,
-                            ),
-                            child: card,
-                          );
-                        }
-
-                        return Expanded(
-                          child: Padding(
-                            padding: EdgeInsets.only(
-                              left: i == 0 ? 0 : 6,
-                              right: i == 2 ? 0 : 6,
-                            ),
-                            child: card,
+                      // Cheerful Floating Feedback Pill
+                      SizedBox(
+                        height: 48,
+                        child: Center(
+                          child: AnimatedSwitcher(
+                            duration: const Duration(milliseconds: 180),
+                            child: _feedbackType == null
+                                ? const SizedBox.shrink(key: ValueKey('empty'))
+                                : Container(
+                                    key: ValueKey(_feedbackType),
+                                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                                    decoration: BoxDecoration(
+                                      color: _feedbackType == 'correct'
+                                          ? const Color(0xFFE8F8EE)
+                                          : const Color(0xFFFFEBEE),
+                                      borderRadius: BorderRadius.circular(24),
+                                      border: Border.all(
+                                        color: _feedbackType == 'correct'
+                                            ? const Color(0xFF2E7D32)
+                                            : const Color(0xFFE53935),
+                                        width: 1.5,
+                                      ),
+                                      boxShadow: [
+                                        BoxShadow(
+                                          color: (_feedbackType == 'correct'
+                                                  ? const Color(0xFF2E7D32)
+                                                  : const Color(0xFFE53935))
+                                              .withValues(alpha: 0.15),
+                                          blurRadius: 10,
+                                          offset: const Offset(0, 3),
+                                        ),
+                                      ],
+                                    ),
+                                    child: Text(
+                                      _feedbackType == 'correct'
+                                          ? _praiseText
+                                          : '😅 Try again!',
+                                      style: TextStyle(
+                                        fontSize: 18,
+                                        fontWeight: FontWeight.w900,
+                                        color: _feedbackType == 'correct'
+                                            ? const Color(0xFF1B5E20)
+                                            : const Color(0xFFB71C1C),
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
                           ),
-                        );
-                      }),
-                    ),
+                        ),
+                      ),
 
-                    const SizedBox(height: 4),
-                  ],
+                      // 3 Answer Choices (One-handed thumb reach)
+                      Row(
+                        children: List.generate(3, (i) {
+                          final item = _choices[i];
+                          final isSelected = _tappedIndex == i;
+
+                          CardState cardState = CardState.idle;
+                          if (isSelected && _feedbackType == 'correct') {
+                            cardState = CardState.correct;
+                          } else if (isSelected && _feedbackType == 'wrong') {
+                            cardState = CardState.wrong;
+                          }
+
+                          Widget card = AnswerCard(
+                            item: item,
+                            state: cardState,
+                            onTap: () => _onChoiceTapped(i),
+                          );
+
+                          // Shake animation on incorrect choice
+                          if (cardState == CardState.wrong) {
+                            card = AnimatedBuilder(
+                              animation: _shakeAnim,
+                              builder: (context, child) => Transform.translate(
+                                offset: Offset(
+                                  sin(_shakeAnim.value * pi * 8) * 8, 0,
+                                ),
+                                child: child,
+                              ),
+                              child: card,
+                            );
+                          }
+
+                          return Expanded(
+                            child: Padding(
+                              padding: EdgeInsets.only(
+                                left: i == 0 ? 0 : 6,
+                                right: i == 2 ? 0 : 6,
+                              ),
+                              child: card,
+                            ),
+                          );
+                        }),
+                      ),
+
+                      const SizedBox(height: 4),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -583,13 +599,13 @@ class _ProgressBar extends StatelessWidget {
   }
 }
 
-class _TargetEmoji extends StatelessWidget {
-  final String emoji;
+class _TargetGraphic extends StatelessWidget {
+  final GameItem item;
   final Color accentColor;
   final bool isCorrect;
 
-  const _TargetEmoji({
-    required this.emoji,
+  const _TargetGraphic({
+    required this.item,
     required this.accentColor,
     required this.isCorrect,
   });
@@ -598,24 +614,28 @@ class _TargetEmoji extends StatelessWidget {
   Widget build(BuildContext context) {
     return AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(28),
+      padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isCorrect ? const Color(0xFF4CAF50) : accentColor.withValues(alpha: 0.15),
-          width: isCorrect ? 4 : 2,
+          color: isCorrect ? const Color(0xFF4CAF50) : accentColor.withValues(alpha: 0.18),
+          width: isCorrect ? 4 : 2.5,
         ),
         boxShadow: [
           BoxShadow(
-            color: (isCorrect ? const Color(0xFF4CAF50) : accentColor).withValues(alpha: isCorrect ? 0.25 : 0.1),
-            blurRadius: isCorrect ? 24 : 16,
+            color: (isCorrect ? const Color(0xFF4CAF50) : accentColor)
+                .withValues(alpha: isCorrect ? 0.3 : 0.12),
+            blurRadius: isCorrect ? 28 : 18,
             spreadRadius: isCorrect ? 6 : 2,
             offset: const Offset(0, 8),
           ),
         ],
       ),
-      child: Text(emoji, style: const TextStyle(fontSize: 82)),
+      child: GameGraphic.fromItem(
+        item,
+        size: 96,
+      ),
     );
   }
 }

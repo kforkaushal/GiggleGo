@@ -1,10 +1,13 @@
 import 'package:flutter/material.dart';
+import '../services/sound_service.dart';
+import 'game_graphic.dart';
 
 /// A colorful, tactile tappable card representing a game category on the Home screen.
 class GameCard extends StatefulWidget {
   final String emoji;
   final String title;
   final String? subtitle;
+  final String? categoryId;
   final List<Color> gradientColors;
   final Color shadowColor;
   final int totalStars;
@@ -16,6 +19,7 @@ class GameCard extends StatefulWidget {
     required this.emoji,
     required this.title,
     this.subtitle,
+    this.categoryId,
     required this.gradientColors,
     required this.shadowColor,
     required this.totalStars,
@@ -50,7 +54,10 @@ class _GameCardState extends State<GameCard>
     super.dispose();
   }
 
-  void _onTapDown(TapDownDetails _) => _controller.reverse();
+  void _onTapDown(TapDownDetails _) {
+    _controller.reverse();
+    SoundService.playPop();
+  }
   void _onTapUp(TapUpDetails _) {
     _controller.forward();
     widget.onTap();
@@ -129,27 +136,64 @@ class _GameCardState extends State<GameCard>
     );
   }
 
+  String _defaultGraphicName() {
+    final cat = widget.categoryId ?? '';
+    switch (cat) {
+      case 'fruits': return 'apple';
+      case 'colors': return 'pink';
+      case 'animals': return 'lion';
+      case 'vehicles': return 'car';
+      case 'shapes': return 'star';
+      default: return 'apple';
+    }
+  }
+
+  Widget _buildAvatar({required double size}) {
+    if (widget.categoryId != null) {
+      return Container(
+        padding: const EdgeInsets.all(8),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(20),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: GameGraphic(
+          name: _defaultGraphicName(),
+          category: widget.categoryId!,
+          size: size,
+        ),
+      );
+    }
+    return Container(
+      padding: const EdgeInsets.all(10),
+      decoration: BoxDecoration(
+        color: Colors.white.withValues(alpha: 0.22),
+        borderRadius: BorderRadius.circular(18),
+      ),
+      child: Text(
+        widget.emoji,
+        style: TextStyle(fontSize: size * 0.9),
+      ),
+    );
+  }
+
   Widget _buildVerticalContent() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       mainAxisAlignment: MainAxisAlignment.spaceBetween,
       children: [
-        // Top row: Emoji avatar + Star pill
+        // Top row: Illustrated avatar + Star pill
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.22),
-                borderRadius: BorderRadius.circular(18),
-              ),
-              child: Text(
-                widget.emoji,
-                style: const TextStyle(fontSize: 36),
-              ),
-            ),
+            _buildAvatar(size: 40),
             _buildStarPill(),
           ],
         ),
@@ -195,17 +239,7 @@ class _GameCardState extends State<GameCard>
   Widget _buildHorizontalContent() {
     return Row(
       children: [
-        Container(
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: Colors.white.withValues(alpha: 0.22),
-            borderRadius: BorderRadius.circular(20),
-          ),
-          child: Text(
-            widget.emoji,
-            style: const TextStyle(fontSize: 40),
-          ),
-        ),
+        _buildAvatar(size: 46),
         const SizedBox(width: 14),
         Expanded(
           child: Column(
@@ -303,7 +337,7 @@ class _GameCardState extends State<GameCard>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Text('⭐', style: TextStyle(fontSize: 12)),
+          const Icon(Icons.star_rounded, color: Color(0xFFFFD54F), size: 14),
           const SizedBox(width: 4),
           Text(
             '${widget.totalStars}',

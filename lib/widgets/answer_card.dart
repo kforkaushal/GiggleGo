@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/game_item.dart';
+import '../services/sound_service.dart';
+import 'game_graphic.dart';
 
 /// Card state representing choice status.
 enum CardState { idle, correct, wrong }
@@ -44,7 +46,10 @@ class _AnswerCardState extends State<AnswerCard>
     super.dispose();
   }
 
-  void _onTapDown(TapDownDetails _) => _pressController.reverse();
+  void _onTapDown(TapDownDetails _) {
+    _pressController.reverse();
+    SoundService.playPop();
+  }
   void _onTapUp(TapUpDetails _) {
     _pressController.forward();
     widget.onTap();
@@ -79,7 +84,7 @@ class _AnswerCardState extends State<AnswerCard>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: 18, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(24),
@@ -96,10 +101,10 @@ class _AnswerCardState extends State<AnswerCard>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Large high-visibility emoji
-              Text(
-                widget.item.emoji,
-                style: const TextStyle(fontSize: 44),
+              // Rich custom illustrated graphic
+              GameGraphic.fromItem(
+                widget.item,
+                size: 52,
               ),
               const SizedBox(height: 8),
               // Clear high-contrast name
