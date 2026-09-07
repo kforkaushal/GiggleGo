@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 import '../services/storage_service.dart';
-import '../widgets/game_graphic.dart';
 
 /// Parent Area screen — reached only through the parental gate.
 /// Contains audio settings, star summary, progress reset, and privacy policy.
@@ -18,11 +17,12 @@ class _ParentAreaScreenState extends State<ParentAreaScreen> {
   int _totalStars = 0;
 
   static const List<Map<String, String>> _categories = [
-    {'id': 'colors', 'name': 'Colors', 'graphic': 'pink'},
-    {'id': 'fruits', 'name': 'Fruits', 'graphic': 'apple'},
-    {'id': 'animals', 'name': 'Animals', 'graphic': 'lion'},
-    {'id': 'vehicles', 'name': 'Vehicles', 'graphic': 'car'},
-    {'id': 'shapes', 'name': 'Shapes', 'graphic': 'star'},
+    {'id': 'alphabet', 'name': 'Alphabet', 'image': 'assets/images/alphabet/a.png'},
+    {'id': 'colors', 'name': 'Colors', 'image': 'assets/images/colors/red.png'},
+    {'id': 'fruits', 'name': 'Fruits', 'image': 'assets/images/objects/apple.png'},
+    {'id': 'animals', 'name': 'Animals', 'image': 'assets/images/objects/lion.png'},
+    {'id': 'vehicles', 'name': 'Vehicles', 'image': 'assets/images/vehicles/bus.png'},
+    {'id': 'shapes', 'name': 'Shapes', 'image': 'assets/images/shapes/star.png'},
   ];
 
   @override
@@ -240,10 +240,18 @@ class _ParentAreaScreenState extends State<ParentAreaScreen> {
                             padding: const EdgeInsets.symmetric(vertical: 6),
                             child: Row(
                               children: [
-                                GameGraphic(
-                                  name: cat['graphic']!,
-                                  category: cat['id']!,
-                                  size: 24,
+                                Container(
+                                  width: 28,
+                                  height: 28,
+                                  padding: const EdgeInsets.all(2),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFFF1F5F9),
+                                    borderRadius: BorderRadius.circular(8),
+                                  ),
+                                  child: Image.asset(
+                                    cat['image']!,
+                                    fit: BoxFit.contain,
+                                  ),
                                 ),
                                 const SizedBox(width: 10),
                                 Text(

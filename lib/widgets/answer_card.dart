@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/game_item.dart';
 import '../services/sound_service.dart';
 import 'game_graphic.dart';
+import 'smooth_graphic.dart';
 
 /// Card state representing choice status.
 enum CardState { idle, correct, wrong }
@@ -56,6 +57,33 @@ class _AnswerCardState extends State<AnswerCard>
   }
   void _onTapCancel() => _pressController.forward();
 
+  Widget _buildCardGraphic() {
+    final imageWidget = widget.item.imagePath != null
+        ? Image.asset(
+            widget.item.imagePath!,
+            width: 52,
+            height: 52,
+            fit: BoxFit.contain,
+          )
+        : GameGraphic.fromItem(widget.item, size: 52);
+
+    if (widget.state == CardState.correct) {
+      return SmoothGraphic(
+        key: ValueKey('card_correct_${widget.item.name}'),
+        size: 52,
+        popOnEntry: true,
+        autoFloat: false,
+        child: imageWidget,
+      );
+    }
+
+    return SizedBox(
+      width: 52,
+      height: 52,
+      child: Center(child: imageWidget),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     Color bgColor = Colors.white;
@@ -98,32 +126,47 @@ class _AnswerCardState extends State<AnswerCard>
               ),
             ],
           ),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
+          child: Stack(
+            clipBehavior: Clip.none,
+            alignment: Alignment.center,
             children: [
-              // Rich custom illustrated graphic
-              GameGraphic.fromItem(
-                widget.item,
-                size: 52,
+              Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  // Rich custom illustrated graphic or popping/bouncing animated sprite!
+                  _buildCardGraphic(),
+                  const SizedBox(height: 8),
+                  // Clear high-contrast name
+                  Text(
+                    widget.item.name,
+                    style: TextStyle(
+                      fontFamily: 'AnjaEliane',
+                      fontSize: 15,
+                      fontWeight: FontWeight.w800,
+                      color: widget.state == CardState.correct
+                          ? const Color(0xFF1B5E20)
+                          : widget.state == CardState.wrong
+                              ? const Color(0xFFB71C1C)
+                              : const Color(0xFF334155),
+                      letterSpacing: 0.3,
+                    ),
+                    textAlign: TextAlign.center,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ],
               ),
-              const SizedBox(height: 8),
-              // Clear high-contrast name
-              Text(
-                widget.item.name,
-                style: TextStyle(
-                  fontSize: 14,
-                  fontWeight: FontWeight.w800,
-                  color: widget.state == CardState.correct
-                      ? const Color(0xFF1B5E20)
-                      : widget.state == CardState.wrong
-                          ? const Color(0xFFB71C1C)
-                          : const Color(0xFF334155),
-                  letterSpacing: 0.2,
+              // Golden star badge on correct selection
+              if (widget.state == CardState.correct)
+                Positioned(
+                  top: -8,
+                  right: -4,
+                  child: Image.asset(
+                    'assets/images/ui/star_gold.png',
+                    width: 22,
+                    height: 22,
+                  ),
                 ),
-                textAlign: TextAlign.center,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-              ),
             ],
           ),
         ),

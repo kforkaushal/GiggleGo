@@ -124,7 +124,7 @@ class _GameCardState extends State<GameCard>
 
               // Card Content
               Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
                 child: widget.isHorizontal
                     ? _buildHorizontalContent()
                     : _buildVerticalContent(),
@@ -136,9 +136,23 @@ class _GameCardState extends State<GameCard>
     );
   }
 
+  String? _categoryImagePath() {
+    final cat = widget.categoryId ?? '';
+    switch (cat) {
+      case 'alphabet': return 'assets/images/alphabet/a.png';
+      case 'animals': return 'assets/images/objects/lion.png';
+      case 'fruits': return 'assets/images/objects/apple.png';
+      case 'vehicles': return 'assets/images/vehicles/bus.png';
+      case 'shapes': return 'assets/images/shapes/star.png';
+      case 'colors': return 'assets/images/colors/red.png';
+      default: return null;
+    }
+  }
+
   String _defaultGraphicName() {
     final cat = widget.categoryId ?? '';
     switch (cat) {
+      case 'alphabet': return 'letter a';
       case 'fruits': return 'apple';
       case 'colors': return 'pink';
       case 'animals': return 'lion';
@@ -149,12 +163,35 @@ class _GameCardState extends State<GameCard>
   }
 
   Widget _buildAvatar({required double size}) {
-    if (widget.categoryId != null) {
+    final imgPath = _categoryImagePath();
+    if (imgPath != null) {
       return Container(
-        padding: const EdgeInsets.all(8),
+        padding: const EdgeInsets.all(7),
         decoration: BoxDecoration(
           color: Colors.white.withValues(alpha: 0.28),
-          borderRadius: BorderRadius.circular(20),
+          borderRadius: BorderRadius.circular(18),
+          boxShadow: [
+            BoxShadow(
+              color: Colors.black.withValues(alpha: 0.08),
+              blurRadius: 8,
+              offset: const Offset(0, 2),
+            ),
+          ],
+        ),
+        child: Image.asset(
+          imgPath,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+        ),
+      );
+    }
+    if (widget.categoryId != null) {
+      return Container(
+        padding: const EdgeInsets.all(7),
+        decoration: BoxDecoration(
+          color: Colors.white.withValues(alpha: 0.28),
+          borderRadius: BorderRadius.circular(18),
           boxShadow: [
             BoxShadow(
               color: Colors.black.withValues(alpha: 0.08),
@@ -171,10 +208,10 @@ class _GameCardState extends State<GameCard>
       );
     }
     return Container(
-      padding: const EdgeInsets.all(10),
+      padding: const EdgeInsets.all(8),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.22),
-        borderRadius: BorderRadius.circular(18),
+        borderRadius: BorderRadius.circular(16),
       ),
       child: Text(
         widget.emoji,
@@ -193,7 +230,7 @@ class _GameCardState extends State<GameCard>
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildAvatar(size: 40),
+            _buildAvatar(size: 38),
             _buildStarPill(),
           ],
         ),
@@ -203,20 +240,25 @@ class _GameCardState extends State<GameCard>
           crossAxisAlignment: CrossAxisAlignment.start,
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(
-              widget.title,
-              style: const TextStyle(
-                fontSize: 20,
-                fontWeight: FontWeight.w900,
-                color: Colors.white,
-                letterSpacing: 0.3,
-                shadows: [
-                  Shadow(
-                    color: Colors.black12,
-                    offset: Offset(0, 1),
-                    blurRadius: 3,
-                  ),
-                ],
+            FittedBox(
+              fit: BoxFit.scaleDown,
+              alignment: Alignment.centerLeft,
+              child: Text(
+                widget.title,
+                style: const TextStyle(
+                  fontFamily: 'AnjaEliane',
+                  fontSize: 20,
+                  fontWeight: FontWeight.w900,
+                  color: Colors.white,
+                  letterSpacing: 0.4,
+                  shadows: [
+                    Shadow(
+                      color: Colors.black12,
+                      offset: Offset(0, 1),
+                      blurRadius: 3,
+                    ),
+                  ],
+                ),
               ),
             ),
             if (widget.subtitle != null) ...[
@@ -224,10 +266,13 @@ class _GameCardState extends State<GameCard>
               Text(
                 widget.subtitle!,
                 style: TextStyle(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w600,
-                  color: Colors.white.withValues(alpha: 0.85),
+                  fontFamily: 'AlteHaasGrotesk',
+                  fontSize: 11.5,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white.withValues(alpha: 0.88),
                 ),
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
               ),
             ],
           ],
@@ -284,7 +329,7 @@ class _GameCardState extends State<GameCard>
             _buildStarPill(),
             const SizedBox(height: 8),
             Container(
-              padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 5),
               decoration: BoxDecoration(
                 color: Colors.white,
                 borderRadius: BorderRadius.circular(20),
@@ -296,23 +341,24 @@ class _GameCardState extends State<GameCard>
                   ),
                 ],
               ),
-              child: const Row(
+              child: Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  Text(
+                  Image.asset(
+                    'assets/images/ui/btn_play.png',
+                    width: 20,
+                    height: 20,
+                  ),
+                  const SizedBox(width: 4),
+                  const Text(
                     'PLAY',
                     style: TextStyle(
+                      fontFamily: 'AnjaEliane',
                       fontSize: 12,
                       fontWeight: FontWeight.w900,
                       color: Color(0xFF455A64),
                       letterSpacing: 1,
                     ),
-                  ),
-                  SizedBox(width: 3),
-                  Icon(
-                    Icons.play_arrow_rounded,
-                    size: 16,
-                    color: Color(0xFF455A64),
                   ),
                 ],
               ),
@@ -337,11 +383,12 @@ class _GameCardState extends State<GameCard>
       child: Row(
         mainAxisSize: MainAxisSize.min,
         children: [
-          const Icon(Icons.star_rounded, color: Color(0xFFFFD54F), size: 14),
+          Image.asset('assets/images/ui/star_gold.png', width: 14, height: 14),
           const SizedBox(width: 4),
           Text(
             '${widget.totalStars}',
             style: const TextStyle(
+              fontFamily: 'AnjaEliane',
               fontSize: 12,
               fontWeight: FontWeight.w800,
               color: Colors.white,

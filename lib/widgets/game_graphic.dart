@@ -7,6 +7,7 @@ import '../models/game_item.dart';
 class GameGraphic extends StatelessWidget {
   final String name;
   final String category;
+  final String? imagePath;
   final double size;
   final bool animateBounce;
 
@@ -14,6 +15,7 @@ class GameGraphic extends StatelessWidget {
     super.key,
     required this.name,
     required this.category,
+    this.imagePath,
     this.size = 60,
     this.animateBounce = false,
   });
@@ -22,6 +24,7 @@ class GameGraphic extends StatelessWidget {
     return GameGraphic(
       name: item.name,
       category: item.category,
+      imagePath: item.imagePath,
       size: size,
       animateBounce: animateBounce,
     );
@@ -29,6 +32,28 @@ class GameGraphic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (imagePath != null && imagePath!.isNotEmpty) {
+      return SizedBox(
+        width: size,
+        height: size,
+        child: Image.asset(
+          imagePath!,
+          width: size,
+          height: size,
+          fit: BoxFit.contain,
+          errorBuilder: (context, error, stackTrace) {
+            return CustomPaint(
+              size: Size(size, size),
+              painter: _GameGraphicPainter(
+                name: name.toLowerCase().trim(),
+                category: category.toLowerCase().trim(),
+              ),
+            );
+          },
+        ),
+      );
+    }
+
     return SizedBox(
       width: size,
       height: size,

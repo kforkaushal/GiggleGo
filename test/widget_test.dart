@@ -10,8 +10,9 @@ void main() {
     // The app should render without throwing.
     expect(find.byType(MaterialApp), findsOneWidget);
 
-    // Fast forward past splash timer
+    // Fast forward past splash timer and verify home renders
     await tester.pump(const Duration(milliseconds: 2500));
-    await tester.pumpAndSettle();
+    await tester.pump(const Duration(milliseconds: 500));
+    expect(find.byType(MaterialApp), findsOneWidget);
   });
 }

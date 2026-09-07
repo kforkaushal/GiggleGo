@@ -6,11 +6,13 @@ import '../data/fruits_data.dart';
 import '../data/animals_data.dart';
 import '../data/vehicles_data.dart';
 import '../data/shapes_data.dart';
+import '../data/alphabet_data.dart';
 import '../services/storage_service.dart';
 import '../services/sound_service.dart';
 import '../widgets/star_counter.dart';
 import '../widgets/answer_card.dart';
-import '../widgets/game_graphic.dart';
+import '../widgets/smooth_mascot.dart';
+import '../widgets/smooth_graphic.dart';
 import '../widgets/confetti_overlay.dart';
 import 'result_screen.dart';
 
@@ -46,10 +48,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   late AnimationController _shakeController;
   late Animation<double> _shakeAnim;
-  late AnimationController _correctController;
-  late Animation<double> _correctScale;
-  late AnimationController _idleController;
-  late Animation<double> _idleScale;
 
   @override
   void initState() {
@@ -64,27 +62,16 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
       duration: const Duration(milliseconds: 400),
     );
     _shakeAnim = Tween<double>(begin: 0, end: 1).animate(_shakeController);
-
-    _correctController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 350),
-    );
-    _correctScale = Tween<double>(begin: 1.0, end: 1.14).animate(
-      CurvedAnimation(parent: _correctController, curve: Curves.elasticOut),
-    );
-
-    _idleController = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 1800),
-    )..repeat(reverse: true);
-    _idleScale = Tween<double>(begin: 0.96, end: 1.04).animate(
-      CurvedAnimation(parent: _idleController, curve: Curves.easeInOutSine),
-    );
   }
 
   Future<void> _loadSoundState() async {
     final sound = await StorageService.getSoundEnabled();
-    if (mounted) setState(() => _soundEnabled = sound);
+    if (mounted) {
+      setState(() => _soundEnabled = sound);
+      if (sound) {
+        SoundService.playActivityMusic();
+      }
+    }
   }
 
   Future<void> _toggleSound() async {
@@ -92,14 +79,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     await StorageService.setSoundEnabled(next);
     if (mounted) {
       setState(() => _soundEnabled = next);
+      await SoundService.onSoundToggled(next, currentContext: 'activity');
     }
   }
 
   @override
   void dispose() {
     _shakeController.dispose();
-    _correctController.dispose();
-    _idleController.dispose();
+    SoundService.playHomeMusic();
     super.dispose();
   }
 
@@ -107,6 +94,7 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   List<GameItem> _dataFor(String id) {
     switch (id) {
+      case 'alphabet': return alphabetData;
       case 'colors': return colorsData;
       case 'fruits': return fruitsData;
       case 'animals': return animalsData;
@@ -128,10 +116,11 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     _choices = [target, pool[0], pool[1]]..shuffle();
   }
 
-  // ─── Theming helpers ──────────────────────────────────────────────────────
+  // ─── Theming & Mascot helpers ─────────────────────────────────────────────
 
   String _categoryLabel() {
     const map = {
+      'alphabet': 'Alphabet',
       'colors': 'Colors',
       'fruits': 'Fruits',
       'animals': 'Animals',
@@ -143,24 +132,32 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
   Color _categoryColor() {
     const map = {
+      'alphabet': Color(0xFF9C27B0),
       'colors': Color(0xFFFF5277),
       'fruits': Color(0xFF00B074),
       'animals': Color(0xFFFF9500),
       'vehicles': Color(0xFF0088FF),
-      'shapes': Color(0xFF8E24AA),
+      'shapes': Color(0xFF5E35B1),
     };
     return map[widget.categoryId] ?? const Color(0xFFFF9500);
   }
 
   Color _backgroundColor() {
     const map = {
+      'alphabet': Color(0xFFFAF4FC),
       'colors': Color(0xFFFFF7F9),
       'fruits': Color(0xFFF3FAF6),
       'animals': Color(0xFFFFFBF5),
       'vehicles': Color(0xFFF4F8FD),
-      'shapes': Color(0xFFFAF4FC),
+      'shapes': Color(0xFFF5F3FF),
     };
     return map[widget.categoryId] ?? const Color(0xFFFAF9F6);
+  }
+
+  String _mascotAction() {
+    if (_feedbackType == 'correct') return 'celebrate';
+    if (_feedbackType == 'wrong') return 'sad';
+    return 'thinking';
   }
 
   String _nextPraise() {
@@ -189,7 +186,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         _sessionStars++;
       });
       SoundService.playCorrect();
-      _correctController.forward(from: 0);
       _isAdvancing = true;
       Future.delayed(const Duration(milliseconds: 900), _advance);
     } else {
@@ -232,7 +228,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
         _tappedIndex = null;
         _isAdvancing = false;
       });
-      _correctController.reset();
       _buildChoices();
     }
   }
@@ -247,84 +242,157 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
 
     return Scaffold(
       backgroundColor: bgColor,
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- Top Navigation Bar ---
-            _TopBar(
-              label: _categoryLabel(),
-              accentColor: accentColor,
-              sessionStars: _sessionStars,
-              soundEnabled: _soundEnabled,
-              onToggleSound: _toggleSound,
-              onBack: () => Navigator.of(context).pop(),
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Soft ambient cartoon backdrop
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.12,
+              child: Image.asset(
+                'assets/images/backgrounds/bg_3.png',
+                fit: BoxFit.cover,
+              ),
             ),
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                // --- Top Navigation Bar ---
+                _TopBar(
+                  label: _categoryLabel(),
+                  accentColor: accentColor,
+                  sessionStars: _sessionStars,
+                  soundEnabled: _soundEnabled,
+                  onToggleSound: _toggleSound,
+                  onBack: () => Navigator.of(context).pop(),
+                ),
 
-            // --- Progress Bar ---
-            _ProgressBar(
-              progress: (_currentIndex + 1) / _questions.length,
-              accentColor: accentColor,
-              current: _currentIndex + 1,
-              total: _questions.length,
-            ),
+                // --- Progress Bar ---
+                _ProgressBar(
+                  progress: (_currentIndex + 1) / _questions.length,
+                  accentColor: accentColor,
+                  current: _currentIndex + 1,
+                  total: _questions.length,
+                ),
 
-            // --- Game Area with Confetti Burst ---
-            Expanded(
-              child: ConfettiBurst(
-                isPlaying: _feedbackType == 'correct',
-                child: Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 18),
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      // Prompt with highlighted target keyword
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(22),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.04),
-                              blurRadius: 10,
-                              offset: const Offset(0, 3),
-                            ),
-                          ],
-                        ),
-                        child: RichText(
-                          textAlign: TextAlign.center,
-                          text: TextSpan(
-                            style: const TextStyle(
-                              fontSize: 22,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF334155),
-                            ),
-                            children: [
-                              const TextSpan(text: 'Touch the '),
-                              TextSpan(
-                                text: target.name,
-                                style: TextStyle(
-                                  color: accentColor,
-                                  fontWeight: FontWeight.w900,
+                // --- Game Area with Confetti Burst ---
+                Expanded(
+                  child: ConfettiBurst(
+                    isPlaying: _feedbackType == 'correct',
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 18),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Prompt with highlighted target keyword & subtitle hint
+                          Container(
+                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                            decoration: BoxDecoration(
+                              color: Colors.white,
+                              borderRadius: BorderRadius.circular(24),
+                              border: Border.all(color: const Color(0xFFE2E8F0)),
+                              boxShadow: [
+                                BoxShadow(
+                                  color: Colors.black.withValues(alpha: 0.04),
+                                  blurRadius: 10,
+                                  offset: const Offset(0, 3),
                                 ),
+                              ],
+                            ),
+                            child: Column(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                RichText(
+                                  textAlign: TextAlign.center,
+                                  text: TextSpan(
+                                    style: const TextStyle(
+                                      fontFamily: 'AlteHaasGrotesk',
+                                      fontSize: 22,
+                                      fontWeight: FontWeight.w800,
+                                      color: Color(0xFF334155),
+                                    ),
+                                    children: [
+                                      const TextSpan(text: 'Touch the '),
+                                      TextSpan(
+                                        text: target.name,
+                                        style: TextStyle(
+                                          fontFamily: 'AnjaEliane',
+                                          color: accentColor,
+                                          fontWeight: FontWeight.w900,
+                                          fontSize: 24,
+                                        ),
+                                      ),
+                                      const TextSpan(text: '! ✨'),
+                                    ],
+                                  ),
+                                ),
+                                if (target.subtitle != null) ...[
+                                  const SizedBox(height: 2),
+                                  Text(
+                                    target.subtitle!,
+                                    style: TextStyle(
+                                      fontFamily: 'AlteHaasGrotesk',
+                                      fontSize: 14,
+                                      fontWeight: FontWeight.w700,
+                                      color: accentColor.withValues(alpha: 0.9),
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            ),
+                          ),
+
+                          // Mascot Companion + Target Graphic Stage Row
+                          Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.end,
+                            children: [
+                              // Reactive Animated Mascot Companion on Ground Stage
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  SmoothMascot(
+                                    key: ValueKey('mascot_${_mascotAction()}'),
+                                    action: _mascotAction(),
+                                    size: 104,
+                                  ),
+                                  const SizedBox(height: 2),
+                                  // Soft contact shadow
+                                  Container(
+                                    width: 66,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.09),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ],
                               ),
-                              const TextSpan(text: '! ✨'),
+                              const SizedBox(width: 18),
+                              // Target Illustrated Graphic on Ground Stage
+                              Column(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  _TargetGraphic(
+                                    item: target,
+                                    accentColor: accentColor,
+                                    isCorrect: _feedbackType == 'correct',
+                                  ),
+                                  const SizedBox(height: 2),
+                                  // Soft contact shadow
+                                  Container(
+                                    width: 80,
+                                    height: 6,
+                                    decoration: BoxDecoration(
+                                      color: Colors.black.withValues(alpha: 0.07),
+                                      borderRadius: BorderRadius.circular(8),
+                                    ),
+                                  ),
+                                ],
+                              ),
                             ],
                           ),
-                        ),
-                      ),
-
-                      // Target Illustrated Graphic with gentle idle breathing & victory bounce
-                      ScaleTransition(
-                        scale: _feedbackType == 'correct'
-                            ? _correctScale
-                            : _idleScale,
-                        child: _TargetGraphic(
-                          item: target,
-                          accentColor: accentColor,
-                          isCorrect: _feedbackType == 'correct',
-                        ),
-                      ),
 
                       // Cheerful Floating Feedback Pill
                       SizedBox(
@@ -431,8 +499,10 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
           ],
         ),
       ),
-    );
-  }
+    ],
+  ),
+);
+}
 }
 
 // ─── Supporting widgets ───────────────────────────────────────────────────────
@@ -460,27 +530,14 @@ class _TopBar extends StatelessWidget {
       padding: const EdgeInsets.fromLTRB(16, 12, 16, 4),
       child: Row(
         children: [
-          // Back Button
+          // Authentic Game Back Button
           GestureDetector(
             onTap: onBack,
-            child: Container(
-              padding: const EdgeInsets.all(10),
-              decoration: BoxDecoration(
-                color: Colors.white,
-                shape: BoxShape.circle,
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.06),
-                    blurRadius: 8,
-                    offset: const Offset(0, 2),
-                  ),
-                ],
-              ),
-              child: const Icon(
-                Icons.arrow_back_ios_new_rounded,
-                size: 16,
-                color: Color(0xFF475569),
-              ),
+            child: Image.asset(
+              'assets/images/ui/btn_back.png',
+              width: 44,
+              height: 44,
+              fit: BoxFit.contain,
             ),
           ),
           const SizedBox(width: 12),
@@ -489,16 +546,17 @@ class _TopBar extends StatelessWidget {
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
             decoration: BoxDecoration(
-              color: accentColor.withValues(alpha: 0.12),
+              color: accentColor.withValues(alpha: 0.14),
               borderRadius: BorderRadius.circular(16),
             ),
             child: Text(
               label.toUpperCase(),
               style: TextStyle(
-                fontSize: 14,
+                fontFamily: 'AnjaEliane',
+                fontSize: 15,
                 fontWeight: FontWeight.w900,
                 color: accentColor,
-                letterSpacing: 1.5,
+                letterSpacing: 1.2,
               ),
             ),
           ),
@@ -612,30 +670,69 @@ class _TargetGraphic extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AnimatedContainer(
+    final graphicContent = SmoothGraphic(
+      key: ValueKey('smooth_target_${item.name}_$isCorrect'),
+      size: 88,
+      popOnEntry: true,
+      autoFloat: !isCorrect,
+      child: Image.asset(
+        item.imagePath!,
+        width: 88,
+        height: 88,
+        fit: BoxFit.contain,
+      ),
+    );
+
+    final targetCircle = AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(22),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isCorrect ? const Color(0xFF4CAF50) : accentColor.withValues(alpha: 0.18),
-          width: isCorrect ? 4 : 2.5,
+          color: isCorrect ? const Color(0xFF4CAF50) : accentColor.withValues(alpha: 0.2),
+          width: isCorrect ? 3.5 : 2.5,
         ),
         boxShadow: [
           BoxShadow(
             color: (isCorrect ? const Color(0xFF4CAF50) : accentColor)
-                .withValues(alpha: isCorrect ? 0.3 : 0.12),
-            blurRadius: isCorrect ? 28 : 18,
-            spreadRadius: isCorrect ? 6 : 2,
-            offset: const Offset(0, 8),
+                .withValues(alpha: isCorrect ? 0.35 : 0.12),
+            blurRadius: isCorrect ? 24 : 16,
+            spreadRadius: isCorrect ? 4 : 1,
+            offset: const Offset(0, 6),
           ),
         ],
       ),
-      child: GameGraphic.fromItem(
-        item,
-        size: 96,
-      ),
+      child: graphicContent,
+    );
+
+    if (!isCorrect) return targetCircle;
+
+    return Stack(
+      alignment: Alignment.center,
+      clipBehavior: Clip.none,
+      children: [
+        Opacity(
+          opacity: 0.75,
+          child: Image.asset(
+            'assets/images/ui/shine.png',
+            width: 136,
+            height: 136,
+            fit: BoxFit.contain,
+          ),
+        ),
+        targetCircle,
+        Positioned(
+          top: -4,
+          right: -4,
+          child: Image.asset(
+            'assets/images/ui/sparkles.png',
+            width: 32,
+            height: 32,
+            fit: BoxFit.contain,
+          ),
+        ),
+      ],
     );
   }
 }

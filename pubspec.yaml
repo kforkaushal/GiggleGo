@@ -23,4 +23,27 @@ flutter:
 
   assets:
     - assets/images/
+    - assets/images/backgrounds/
+    - assets/images/mascot/
+    - assets/images/ui/
+    - assets/images/alphabet/
+    - assets/images/objects/
+    - assets/images/shapes/
+    - assets/images/colors/
+    - assets/images/vehicles/
+    - assets/images/animals/
+    - assets/images/fruits/
+    - assets/images/mascot_seq/
+    - assets/images/alphabet_seq/
+    - assets/images/appear/
     - assets/sounds/
+
+  fonts:
+    - family: AnjaEliane
+      fonts:
+        - asset: assets/fonts/AnjaEliane.ttf
+    - family: AlteHaasGrotesk
+      fonts:
+        - asset: assets/fonts/AlteHaasGroteskRegular.ttf
+        - asset: assets/fonts/AlteHaasGroteskBold.ttf
+          weight: 700

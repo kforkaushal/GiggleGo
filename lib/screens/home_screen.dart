@@ -2,8 +2,11 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import '../widgets/game_card.dart';
 import '../widgets/star_counter.dart';
+import '../widgets/smooth_mascot.dart';
 import '../services/storage_service.dart';
+import '../services/sound_service.dart';
 import 'game_screen.dart';
+import 'alphabet_screen.dart';
 import 'parent_area_screen.dart';
 
 /// Home screen — shows 5 category cards, sound toggle, and parental settings.
@@ -18,6 +21,14 @@ class _HomeScreenState extends State<HomeScreen> {
   // Category metadata: id, display title, emoji, rich gradients
   static const List<Map<String, dynamic>> _categories = [
     {
+      'id': 'alphabet',
+      'title': 'ABC Letters',
+      'emoji': '🅰️',
+      'subtitle': 'A to Z letter fun!',
+      'gradient': [Color(0xFF9C27B0), Color(0xFFBA68C8)],
+      'shadow': Color(0xFF9C27B0),
+    },
+    {
       'id': 'colors',
       'title': 'Colors',
       'emoji': '🌈',
@@ -29,7 +40,7 @@ class _HomeScreenState extends State<HomeScreen> {
       'id': 'fruits',
       'title': 'Fruits',
       'emoji': '🍎',
-      'subtitle': 'Apples, bananas & berries!',
+      'subtitle': 'Apples, mangoes & berries!',
       'gradient': [Color(0xFF00B074), Color(0xFF52D68A)],
       'shadow': Color(0xFF00B074),
     },
@@ -53,9 +64,9 @@ class _HomeScreenState extends State<HomeScreen> {
       'id': 'shapes',
       'title': 'Shapes',
       'emoji': '⭐',
-      'subtitle': 'Discover circles, stars & patterns!',
-      'gradient': [Color(0xFF8E24AA), Color(0xFFBA68C8)],
-      'shadow': Color(0xFF8E24AA),
+      'subtitle': 'Stars, moons & patterns!',
+      'gradient': [Color(0xFF5E35B1), Color(0xFF7E57C2)],
+      'shadow': Color(0xFF5E35B1),
     },
   ];
 
@@ -82,27 +93,51 @@ class _HomeScreenState extends State<HomeScreen> {
         _totalStars = total;
         _soundEnabled = sound;
       });
+      if (sound) {
+        SoundService.playHomeMusic();
+      }
     }
   }
 
   Future<void> _toggleSound() async {
     final next = !_soundEnabled;
     await StorageService.setSoundEnabled(next);
-    if (mounted) {
-      setState(() => _soundEnabled = next);
+      if (mounted) {
+        setState(() => _soundEnabled = next);
+      }
+      await SoundService.onSoundToggled(next, currentContext: 'home');
+      if (!mounted) return;
       ScaffoldMessenger.of(context).clearSnackBars();
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(
-          content: Text(next ? '🔊 Sound effects turned ON' : '🔇 Sound effects muted'),
+          content: Text(next ? '🔊 Sound & Music turned ON' : '🔇 Sound & Music muted'),
           duration: const Duration(milliseconds: 1400),
           behavior: SnackBarBehavior.floating,
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       );
-    }
   }
 
   void _openGame(String categoryId) async {
+    if (categoryId == 'alphabet') {
+      await Navigator.of(context).push(
+        PageRouteBuilder(
+          transitionDuration: const Duration(milliseconds: 320),
+          pageBuilder: (context, animation, secondaryAnimation) =>
+              const AlphabetScreen(),
+          transitionsBuilder: (context, animation, secondaryAnimation, child) {
+            return FadeTransition(
+              opacity: CurvedAnimation(parent: animation, curve: Curves.easeOut),
+              child: child,
+            );
+          },
+        ),
+      );
+      SoundService.playHomeMusic();
+      _loadState();
+      return;
+    }
+
     await Navigator.of(context).push(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 320),
@@ -116,6 +151,7 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
+    SoundService.playHomeMusic();
     _loadState();
   }
 
@@ -138,112 +174,220 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFFFAF9F6),
-      body: SafeArea(
-        child: Column(
-          children: [
-            // --- Top App Bar ---
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 14, 18, 6),
-              child: Row(
-                children: [
-                  // App Logo
-                  Image.asset(
-                    'assets/images/trans-logo.png',
-                    height: 52,
-                    alignment: Alignment.centerLeft,
-                    fit: BoxFit.contain,
-                  ),
-                  const Spacer(),
-
-                  // Quick Sound Toggle Button
-                  GestureDetector(
-                    onTap: _toggleSound,
-                    child: Container(
-                      padding: const EdgeInsets.all(9),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: Icon(
-                        _soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                        size: 20,
-                        color: _soundEnabled ? const Color(0xFF455A64) : const Color(0xFFB0BEC5),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 10),
-
-                  // Total Star Counter Badge
-                  StarCounter(count: _totalStars),
-                  const SizedBox(width: 10),
-
-                  // Settings (Parental Gate) Icon
-                  GestureDetector(
-                    onTap: _openParentArea,
-                    child: Container(
-                      padding: const EdgeInsets.all(9),
-                      decoration: BoxDecoration(
-                        color: Colors.white,
-                        shape: BoxShape.circle,
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.06),
-                            blurRadius: 8,
-                            offset: const Offset(0, 2),
-                          ),
-                        ],
-                      ),
-                      child: const Icon(
-                        Icons.settings_outlined,
-                        size: 20,
-                        color: Color(0xFF78909C),
-                      ),
-                    ),
-                  ),
-                ],
+      body: Stack(
+        fit: StackFit.expand,
+        children: [
+          // Ambient soft illustrated landscape backdrop
+          Positioned.fill(
+            child: Opacity(
+              opacity: 0.15,
+              child: Image.asset(
+                'assets/images/backgrounds/bg_1.png',
+                fit: BoxFit.cover,
               ),
             ),
-
-            // Friendly Subtitle
-            Padding(
-              padding: const EdgeInsets.fromLTRB(22, 4, 22, 12),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: Row(
-                  children: [
-                    Text(
-                      'What do you want to learn today?',
-                      style: TextStyle(
-                        fontSize: 15,
-                        color: Colors.blueGrey.shade600,
-                        fontWeight: FontWeight.w600,
-                        letterSpacing: 0.2,
+          ),
+          SafeArea(
+            child: Column(
+              children: [
+                // --- Top App Bar ---
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
+                  child: Row(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // App Brand Logo Badge
+                      Container(
+                        height: 44,
+                        width: 44,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(14),
+                          border: Border.all(color: const Color(0xFFE2E8F0)),
+                          boxShadow: [
+                            BoxShadow(
+                              color: Colors.black.withValues(alpha: 0.05),
+                              blurRadius: 8,
+                              offset: const Offset(0, 2),
+                            ),
+                          ],
+                        ),
+                        padding: const EdgeInsets.all(4),
+                        child: Image.asset(
+                          'assets/images/trans-logo.png',
+                          fit: BoxFit.contain,
+                        ),
                       ),
-                    ),
-                    const SizedBox(width: 6),
-                    const Text('✨', style: TextStyle(fontSize: 14)),
-                  ],
+                      const SizedBox(width: 10),
+
+                      // App Title & Tag
+                      const Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Text(
+                            'Giggle Go!',
+                            style: TextStyle(
+                              fontFamily: 'AnjaEliane',
+                              fontSize: 20,
+                              fontWeight: FontWeight.w900,
+                              color: Color(0xFF1E293B),
+                              letterSpacing: 0.4,
+                              height: 1.1,
+                            ),
+                          ),
+                          Text(
+                            'PRESCHOOL PLAY',
+                            style: TextStyle(
+                              fontFamily: 'AlteHaasGrotesk',
+                              fontSize: 9.5,
+                              fontWeight: FontWeight.w800,
+                              color: Color(0xFF0284C7),
+                              letterSpacing: 1.1,
+                            ),
+                          ),
+                        ],
+                      ),
+                      const Spacer(),
+
+                      // Quick Sound Toggle Button
+                      GestureDetector(
+                        onTap: _toggleSound,
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: Icon(
+                            _soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
+                            size: 19,
+                            color: _soundEnabled ? const Color(0xFF455A64) : const Color(0xFFB0BEC5),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+
+                      // Total Star Counter Badge
+                      StarCounter(count: _totalStars),
+                      const SizedBox(width: 8),
+
+                      // Settings (Parental Gate) Icon
+                      GestureDetector(
+                        onTap: _openParentArea,
+                        child: Container(
+                          width: 38,
+                          height: 38,
+                          alignment: Alignment.center,
+                          decoration: BoxDecoration(
+                            color: Colors.white,
+                            shape: BoxShape.circle,
+                            border: Border.all(color: const Color(0xFFE2E8F0)),
+                            boxShadow: [
+                              BoxShadow(
+                                color: Colors.black.withValues(alpha: 0.05),
+                                blurRadius: 8,
+                                offset: const Offset(0, 2),
+                              ),
+                            ],
+                          ),
+                          child: const Icon(
+                            Icons.settings_outlined,
+                            size: 19,
+                            color: Color(0xFF78909C),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ),
 
-            // --- Game Cards Grid ---
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
-                child: _buildGrid(),
-              ),
+                // Friendly Cat Mascot Greeting Banner (Speech Card)
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.95),
+                      borderRadius: BorderRadius.circular(22),
+                      border: Border.all(color: const Color(0xFFE0E7FF), width: 1.5),
+                      boxShadow: [
+                        BoxShadow(
+                          color: const Color(0xFF6366F1).withValues(alpha: 0.06),
+                          blurRadius: 10,
+                          offset: const Offset(0, 3),
+                        ),
+                      ],
+                    ),
+                    child: Row(
+                      children: [
+                        const SmoothMascot(
+                          action: 'pointing',
+                          size: 54,
+                        ),
+                        const SizedBox(width: 12),
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Container(
+                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFFEDE9FE),
+                                  borderRadius: BorderRadius.circular(6),
+                                ),
+                                child: const Text(
+                                  'Giggle Cat 🐱',
+                                  style: TextStyle(
+                                    fontFamily: 'AlteHaasGrotesk',
+                                    fontSize: 10.5,
+                                    fontWeight: FontWeight.w800,
+                                    color: Color(0xFF7C3AED),
+                                    letterSpacing: 0.3,
+                                  ),
+                                ),
+                              ),
+                              const SizedBox(height: 3),
+                              Text(
+                                'Hi friend! Pick a card to learn & play! ✨',
+                                style: TextStyle(
+                                  fontFamily: 'AlteHaasGrotesk',
+                                  fontSize: 13.5,
+                                  color: Colors.blueGrey.shade800,
+                                  fontWeight: FontWeight.w700,
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // --- 6 Game Cards Grid (2x3 symmetrical) ---
+                Expanded(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    child: _buildGrid(),
+                  ),
+                ),
+                const SizedBox(height: 12),
+              ],
             ),
-            const SizedBox(height: 14),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
@@ -251,36 +395,39 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget _buildGrid() {
     return Column(
       children: [
-        // Row 1: Colors & Fruits
+        // Row 1: Alphabet & Colors
         Expanded(
-          flex: 5,
           child: Row(
             children: [
               Expanded(child: _buildCard(_categories[0])),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(child: _buildCard(_categories[1])),
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
-        // Row 2: Animals & Vehicles
+        // Row 2: Fruits & Animals
         Expanded(
-          flex: 5,
           child: Row(
             children: [
               Expanded(child: _buildCard(_categories[2])),
-              const SizedBox(width: 14),
+              const SizedBox(width: 12),
               Expanded(child: _buildCard(_categories[3])),
             ],
           ),
         ),
-        const SizedBox(height: 14),
+        const SizedBox(height: 12),
 
-        // Row 3: Featured Shapes Card (Full-width hero banner)
+        // Row 3: Vehicles & Shapes
         Expanded(
-          flex: 3,
-          child: _buildFeaturedCard(_categories[4]),
+          child: Row(
+            children: [
+              Expanded(child: _buildCard(_categories[4])),
+              const SizedBox(width: 12),
+              Expanded(child: _buildCard(_categories[5])),
+            ],
+          ),
         ),
       ],
     );
@@ -295,20 +442,6 @@ class _HomeScreenState extends State<HomeScreen> {
       gradientColors: cat['gradient'] as List<Color>,
       shadowColor: cat['shadow'] as Color,
       totalStars: _starTotals[cat['id']] ?? 0,
-      onTap: () => _openGame(cat['id'] as String),
-    );
-  }
-
-  Widget _buildFeaturedCard(Map<String, dynamic> cat) {
-    return GameCard(
-      emoji: cat['emoji'] as String,
-      title: cat['title'] as String,
-      subtitle: cat['subtitle'] as String?,
-      categoryId: cat['id'] as String?,
-      gradientColors: cat['gradient'] as List<Color>,
-      shadowColor: cat['shadow'] as Color,
-      totalStars: _starTotals[cat['id']] ?? 0,
-      isHorizontal: true,
       onTap: () => _openGame(cat['id'] as String),
     );
   }
