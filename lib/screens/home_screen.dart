@@ -1,8 +1,9 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../theme/tokens.dart';
 import '../widgets/game_card.dart';
-import '../widgets/star_counter.dart';
-import '../widgets/smooth_mascot.dart';
+import '../widgets/giggle_header.dart';
+import '../widgets/welcome_banner.dart';
 import '../services/storage_service.dart';
 import '../services/sound_service.dart';
 import 'game_screen.dart';
@@ -173,14 +174,14 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFFFAF9F6),
+      backgroundColor: AppColors.background,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Ambient soft illustrated landscape backdrop
+          // Soft ambient cartoon backdrop (PRD Section 25)
           Positioned.fill(
             child: Opacity(
-              opacity: 0.15,
+              opacity: 0.10,
               child: Image.asset(
                 'assets/images/backgrounds/bg_1.png',
                 fit: BoxFit.cover,
@@ -190,200 +191,49 @@ class _HomeScreenState extends State<HomeScreen> {
           SafeArea(
             child: Column(
               children: [
-                // --- Top App Bar ---
+                // Standardized Preschool Header (PRD Section 4)
+                GiggleHeader(
+                  totalStars: _totalStars,
+                  soundEnabled: _soundEnabled,
+                  onToggleSound: _toggleSound,
+                  onOpenSettings: _openParentArea,
+                ),
+
+                // Dedicated Preschool Welcome Banner (PRD Section 5)
+                const WelcomeBanner(),
+
+                // Category Section Header (PRD Section 41)
                 Padding(
-                  padding: const EdgeInsets.fromLTRB(18, 10, 18, 6),
+                  padding: const EdgeInsets.fromLTRB(
+                    AppSpacing.base,
+                    AppSpacing.xs,
+                    AppSpacing.base,
+                    AppSpacing.xs,
+                  ),
                   child: Row(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // App Brand Logo Badge
-                      Container(
-                        height: 44,
-                        width: 44,
-                        decoration: BoxDecoration(
-                          color: Colors.white,
-                          borderRadius: BorderRadius.circular(14),
-                          border: Border.all(color: const Color(0xFFE2E8F0)),
-                          boxShadow: [
-                            BoxShadow(
-                              color: Colors.black.withValues(alpha: 0.05),
-                              blurRadius: 8,
-                              offset: const Offset(0, 2),
-                            ),
-                          ],
-                        ),
-                        padding: const EdgeInsets.all(4),
-                        child: Image.asset(
-                          'assets/images/trans-logo.png',
-                          fit: BoxFit.contain,
-                        ),
-                      ),
-                      const SizedBox(width: 10),
-
-                      // App Title & Tag
-                      const Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          Text(
-                            'Giggle Go!',
-                            style: TextStyle(
-                              fontFamily: 'AnjaEliane',
-                              fontSize: 20,
-                              fontWeight: FontWeight.w900,
-                              color: Color(0xFF1E293B),
-                              letterSpacing: 0.4,
-                              height: 1.1,
-                            ),
-                          ),
-                          Text(
-                            'PRESCHOOL PLAY',
-                            style: TextStyle(
-                              fontFamily: 'AlteHaasGrotesk',
-                              fontSize: 9.5,
-                              fontWeight: FontWeight.w800,
-                              color: Color(0xFF0284C7),
-                              letterSpacing: 1.1,
-                            ),
-                          ),
-                        ],
-                      ),
-                      const Spacer(),
-
-                      // Quick Sound Toggle Button
-                      GestureDetector(
-                        onTap: _toggleSound,
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: Icon(
-                            _soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                            size: 19,
-                            color: _soundEnabled ? const Color(0xFF455A64) : const Color(0xFFB0BEC5),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(width: 8),
-
-                      // Total Star Counter Badge
-                      StarCounter(count: _totalStars),
-                      const SizedBox(width: 8),
-
-                      // Settings (Parental Gate) Icon
-                      GestureDetector(
-                        onTap: _openParentArea,
-                        child: Container(
-                          width: 38,
-                          height: 38,
-                          alignment: Alignment.center,
-                          decoration: BoxDecoration(
-                            color: Colors.white,
-                            shape: BoxShape.circle,
-                            border: Border.all(color: const Color(0xFFE2E8F0)),
-                            boxShadow: [
-                              BoxShadow(
-                                color: Colors.black.withValues(alpha: 0.05),
-                                blurRadius: 8,
-                                offset: const Offset(0, 2),
-                              ),
-                            ],
-                          ),
-                          child: const Icon(
-                            Icons.settings_outlined,
-                            size: 19,
-                            color: Color(0xFF78909C),
-                          ),
+                    children: const [
+                      Text(
+                        'CHOOSE A CATEGORY',
+                        style: TextStyle(
+                          fontFamily: AppTypography.fontDisplay,
+                          fontSize: 13.5,
+                          fontWeight: FontWeight.w900,
+                          color: Color(0xFF64748B),
+                          letterSpacing: 1.1,
                         ),
                       ),
                     ],
                   ),
                 ),
 
-                // Friendly Cat Mascot Greeting Banner (Speech Card)
-                Padding(
-                  padding: const EdgeInsets.fromLTRB(16, 4, 16, 8),
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 8),
-                    decoration: BoxDecoration(
-                      color: Colors.white.withValues(alpha: 0.95),
-                      borderRadius: BorderRadius.circular(22),
-                      border: Border.all(color: const Color(0xFFE0E7FF), width: 1.5),
-                      boxShadow: [
-                        BoxShadow(
-                          color: const Color(0xFF6366F1).withValues(alpha: 0.06),
-                          blurRadius: 10,
-                          offset: const Offset(0, 3),
-                        ),
-                      ],
-                    ),
-                    child: Row(
-                      children: [
-                        const SmoothMascot(
-                          action: 'pointing',
-                          size: 54,
-                        ),
-                        const SizedBox(width: 12),
-                        Expanded(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              Container(
-                                padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFFEDE9FE),
-                                  borderRadius: BorderRadius.circular(6),
-                                ),
-                                child: const Text(
-                                  'Giggle Cat 🐱',
-                                  style: TextStyle(
-                                    fontFamily: 'AlteHaasGrotesk',
-                                    fontSize: 10.5,
-                                    fontWeight: FontWeight.w800,
-                                    color: Color(0xFF7C3AED),
-                                    letterSpacing: 0.3,
-                                  ),
-                                ),
-                              ),
-                              const SizedBox(height: 3),
-                              Text(
-                                'Hi friend! Pick a card to learn & play! ✨',
-                                style: TextStyle(
-                                  fontFamily: 'AlteHaasGrotesk',
-                                  fontSize: 13.5,
-                                  color: Colors.blueGrey.shade800,
-                                  fontWeight: FontWeight.w700,
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
-
-                // --- 6 Game Cards Grid (2x3 symmetrical) ---
+                // 6 Game Cards Grid (2 columns x 3 rows, PRD Section 6)
                 Expanded(
                   child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
                     child: _buildGrid(),
                   ),
                 ),
-                const SizedBox(height: 12),
+                const SizedBox(height: AppSpacing.sm),
               ],
             ),
           ),

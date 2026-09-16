@@ -36,6 +36,11 @@ flutter:
     - assets/images/mascot_seq/
     - assets/images/alphabet_seq/
     - assets/images/appear/
+    - assets/images/categories/
+    - assets/images/items/animals/
+    - assets/images/items/colors/
+    - assets/images/items/fruits/
+    - assets/images/items/vehicles/
     - assets/sounds/
 
   fonts:

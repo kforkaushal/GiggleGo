@@ -8,6 +8,7 @@ import 'smooth_graphic.dart';
 enum CardState { idle, correct, wrong }
 
 /// A modern, tactile, child-friendly tappable choice card.
+/// Keeps image backing pure white so images with cut-out eyes render with crisp white sclera.
 class AnswerCard extends StatefulWidget {
   final GameItem item;
   final CardState state;
@@ -58,19 +59,30 @@ class _AnswerCardState extends State<AnswerCard>
   void _onTapCancel() => _pressController.forward();
 
   Widget _buildCardGraphic() {
-    final imageWidget = widget.item.imagePath != null
-        ? Image.asset(
-            widget.item.imagePath!,
-            width: 52,
-            height: 52,
-            fit: BoxFit.contain,
-          )
-        : GameGraphic.fromItem(widget.item, size: 52);
+    // Pure solid white circular backing prevents any background bleed through transparent eyes
+    final imageWidget = Container(
+      width: 72,
+      height: 72,
+      decoration: const BoxDecoration(
+        color: Colors.white,
+        shape: BoxShape.circle,
+      ),
+      child: Center(
+        child: widget.item.imagePath != null
+            ? Image.asset(
+                widget.item.imagePath!,
+                width: 72,
+                height: 72,
+                fit: BoxFit.contain,
+              )
+            : GameGraphic.fromItem(widget.item, size: 72),
+      ),
+    );
 
     if (widget.state == CardState.correct) {
       return SmoothGraphic(
         key: ValueKey('card_correct_${widget.item.name}'),
-        size: 52,
+        size: 72,
         popOnEntry: true,
         autoFloat: false,
         child: imageWidget,
@@ -78,29 +90,28 @@ class _AnswerCardState extends State<AnswerCard>
     }
 
     return SizedBox(
-      width: 52,
-      height: 52,
+      width: 72,
+      height: 72,
       child: Center(child: imageWidget),
     );
   }
 
   @override
   Widget build(BuildContext context) {
-    Color bgColor = Colors.white;
+    // Pure white card background ensures character eyes are never tinted
+    const Color bgColor = Colors.white;
     Color borderColor = const Color(0xFFE2E8F0);
-    Color shadowColor = Colors.black.withValues(alpha: 0.06);
+    Color shadowColor = Colors.black.withValues(alpha: 0.07);
     double borderWidth = 2.0;
 
     if (widget.state == CardState.correct) {
-      bgColor = const Color(0xFFE8F8EE);
       borderColor = const Color(0xFF2E7D32);
-      borderWidth = 3.0;
-      shadowColor = const Color(0xFF2E7D32).withValues(alpha: 0.25);
+      borderWidth = 3.5;
+      shadowColor = const Color(0xFF2E7D32).withValues(alpha: 0.32);
     } else if (widget.state == CardState.wrong) {
-      bgColor = const Color(0xFFFFEBEE);
       borderColor = const Color(0xFFE53935);
-      borderWidth = 3.0;
-      shadowColor = const Color(0xFFE53935).withValues(alpha: 0.22);
+      borderWidth = 3.5;
+      shadowColor = const Color(0xFFE53935).withValues(alpha: 0.28);
     }
 
     return GestureDetector(
@@ -112,7 +123,7 @@ class _AnswerCardState extends State<AnswerCard>
         child: AnimatedContainer(
           duration: const Duration(milliseconds: 220),
           curve: Curves.easeOut,
-          padding: const EdgeInsets.symmetric(vertical: 14, horizontal: 8),
+          padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 6),
           decoration: BoxDecoration(
             color: bgColor,
             borderRadius: BorderRadius.circular(24),
@@ -120,7 +131,7 @@ class _AnswerCardState extends State<AnswerCard>
             boxShadow: [
               BoxShadow(
                 color: shadowColor,
-                blurRadius: 14,
+                blurRadius: widget.state != CardState.idle ? 18 : 12,
                 spreadRadius: widget.state != CardState.idle ? 2 : 0,
                 offset: const Offset(0, 6),
               ),
@@ -132,27 +143,30 @@ class _AnswerCardState extends State<AnswerCard>
             children: [
               Column(
                 mainAxisAlignment: MainAxisAlignment.center,
+                mainAxisSize: MainAxisSize.min,
                 children: [
-                  // Rich custom illustrated graphic or popping/bouncing animated sprite!
+                  // Rich custom illustrated graphic with guaranteed white backing
                   _buildCardGraphic(),
                   const SizedBox(height: 8),
-                  // Clear high-contrast name
-                  Text(
-                    widget.item.name,
-                    style: TextStyle(
-                      fontFamily: 'AnjaEliane',
-                      fontSize: 15,
-                      fontWeight: FontWeight.w800,
-                      color: widget.state == CardState.correct
-                          ? const Color(0xFF1B5E20)
-                          : widget.state == CardState.wrong
-                              ? const Color(0xFFB71C1C)
-                              : const Color(0xFF334155),
-                      letterSpacing: 0.3,
+                  // Clear high-contrast name scaled gracefully to prevent truncation
+                  FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      widget.item.name,
+                      style: TextStyle(
+                        fontFamily: 'AnjaEliane',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w800,
+                        color: widget.state == CardState.correct
+                            ? const Color(0xFF1B5E20)
+                            : widget.state == CardState.wrong
+                                ? const Color(0xFFB71C1C)
+                                : const Color(0xFF334155),
+                        letterSpacing: 0.3,
+                      ),
+                      textAlign: TextAlign.center,
+                      maxLines: 1,
                     ),
-                    textAlign: TextAlign.center,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
                   ),
                 ],
               ),
@@ -163,8 +177,8 @@ class _AnswerCardState extends State<AnswerCard>
                   right: -4,
                   child: Image.asset(
                     'assets/images/ui/star_gold.png',
-                    width: 22,
-                    height: 22,
+                    width: 24,
+                    height: 24,
                   ),
                 ),
             ],

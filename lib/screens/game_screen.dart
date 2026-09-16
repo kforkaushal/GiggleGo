@@ -9,8 +9,10 @@ import '../data/shapes_data.dart';
 import '../data/alphabet_data.dart';
 import '../services/storage_service.dart';
 import '../services/sound_service.dart';
+import '../theme/tokens.dart';
 import '../widgets/star_counter.dart';
 import '../widgets/answer_card.dart';
+import '../widgets/game_question_card.dart';
 import '../widgets/smooth_mascot.dart';
 import '../widgets/smooth_graphic.dart';
 import '../widgets/confetti_overlay.dart';
@@ -142,18 +144,6 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
     return map[widget.categoryId] ?? const Color(0xFFFF9500);
   }
 
-  Color _backgroundColor() {
-    const map = {
-      'alphabet': Color(0xFFFAF4FC),
-      'colors': Color(0xFFFFF7F9),
-      'fruits': Color(0xFFF3FAF6),
-      'animals': Color(0xFFFFFBF5),
-      'vehicles': Color(0xFFF4F8FD),
-      'shapes': Color(0xFFF5F3FF),
-    };
-    return map[widget.categoryId] ?? const Color(0xFFFAF9F6);
-  }
-
   String _mascotAction() {
     if (_feedbackType == 'correct') return 'celebrate';
     if (_feedbackType == 'wrong') return 'sad';
@@ -238,26 +228,12 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
   Widget build(BuildContext context) {
     final target = _questions[_currentIndex];
     final accentColor = _categoryColor();
-    final bgColor = _backgroundColor();
 
     return Scaffold(
-      backgroundColor: bgColor,
-      body: Stack(
-        fit: StackFit.expand,
-        children: [
-          // Soft ambient cartoon backdrop
-          Positioned.fill(
-            child: Opacity(
-              opacity: 0.12,
-              child: Image.asset(
-                'assets/images/backgrounds/bg_3.png',
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          SafeArea(
-            child: Column(
-              children: [
+      backgroundColor: Colors.white,
+      body: SafeArea(
+        child: Column(
+          children: [
                 // --- Top Navigation Bar ---
                 _TopBar(
                   label: _categoryLabel(),
@@ -280,97 +256,54 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                 Expanded(
                   child: ConfettiBurst(
                     isPlaying: _feedbackType == 'correct',
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 18),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          // Prompt with highlighted target keyword & subtitle hint
-                          Container(
-                            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-                            decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(24),
-                              border: Border.all(color: const Color(0xFFE2E8F0)),
-                              boxShadow: [
-                                BoxShadow(
-                                  color: Colors.black.withValues(alpha: 0.04),
-                                  blurRadius: 10,
-                                  offset: const Offset(0, 3),
-                                ),
-                              ],
-                            ),
-                            child: Column(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                RichText(
-                                  textAlign: TextAlign.center,
-                                  text: TextSpan(
-                                    style: const TextStyle(
-                                      fontFamily: 'AlteHaasGrotesk',
-                                      fontSize: 22,
-                                      fontWeight: FontWeight.w800,
-                                      color: Color(0xFF334155),
-                                    ),
-                                    children: [
-                                      const TextSpan(text: 'Touch the '),
-                                      TextSpan(
-                                        text: target.name,
-                                        style: TextStyle(
-                                          fontFamily: 'AnjaEliane',
-                                          color: accentColor,
-                                          fontWeight: FontWeight.w900,
-                                          fontSize: 24,
-                                        ),
-                                      ),
-                                      const TextSpan(text: '! ✨'),
-                                    ],
-                                  ),
-                                ),
-                                if (target.subtitle != null) ...[
-                                  const SizedBox(height: 2),
-                                  Text(
-                                    target.subtitle!,
-                                    style: TextStyle(
-                                      fontFamily: 'AlteHaasGrotesk',
-                                      fontSize: 14,
-                                      fontWeight: FontWeight.w700,
-                                      color: accentColor.withValues(alpha: 0.9),
-                                    ),
-                                  ),
-                                ],
-                              ],
-                            ),
+                    child: LayoutBuilder(
+                      builder: (context, constraints) {
+                        return SingleChildScrollView(
+                          physics: constraints.maxHeight > 540
+                              ? const NeverScrollableScrollPhysics()
+                              : const BouncingScrollPhysics(),
+                          child: ConstrainedBox(
+                            constraints: BoxConstraints(minHeight: constraints.maxHeight),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(horizontal: 16),
+                              child: Column(
+                                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                                children: [
+                          // Standardized Prompt Card (PRD Section 17)
+                          GameQuestionCard(
+                            targetName: target.name,
+                            subtitleHint: target.subtitle,
+                            accentColor: accentColor,
                           ),
 
-                          // Mascot Companion + Target Graphic Stage Row
+                          // Mascot Guide + Dominant Target Stage Row (PRD Section 18)
                           Row(
                             mainAxisAlignment: MainAxisAlignment.center,
                             crossAxisAlignment: CrossAxisAlignment.end,
                             children: [
-                              // Reactive Animated Mascot Companion on Ground Stage
+                              // Encouraging Mascot Guide (~84px, secondary to target)
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
                                   SmoothMascot(
                                     key: ValueKey('mascot_${_mascotAction()}'),
                                     action: _mascotAction(),
-                                    size: 104,
+                                    size: AppSizes.mascotGuide,
                                   ),
                                   const SizedBox(height: 2),
-                                  // Soft contact shadow
                                   Container(
-                                    width: 66,
-                                    height: 6,
+                                    width: 54,
+                                    height: 5,
                                     decoration: BoxDecoration(
-                                      color: Colors.black.withValues(alpha: 0.09),
+                                      color: Colors.black.withValues(alpha: 0.08),
                                       borderRadius: BorderRadius.circular(8),
                                     ),
                                   ),
                                 ],
                               ),
-                              const SizedBox(width: 18),
-                              // Target Illustrated Graphic on Ground Stage
+                              const SizedBox(width: AppSpacing.lg),
+
+                              // Visually Dominant Learning Target Graphic (~116px)
                               Column(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [
@@ -380,9 +313,8 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                                     isCorrect: _feedbackType == 'correct',
                                   ),
                                   const SizedBox(height: 2),
-                                  // Soft contact shadow
                                   Container(
-                                    width: 80,
+                                    width: 96,
                                     height: 6,
                                     decoration: BoxDecoration(
                                       color: Colors.black.withValues(alpha: 0.07),
@@ -495,12 +427,14 @@ class _GameScreenState extends State<GameScreen> with TickerProviderStateMixin {
                   ),
                 ),
               ),
-            ),
-          ],
+            );
+          },
         ),
       ),
-    ],
-  ),
+    ),
+  ],
+),
+),
 );
 }
 }
@@ -672,25 +606,25 @@ class _TargetGraphic extends StatelessWidget {
   Widget build(BuildContext context) {
     final graphicContent = SmoothGraphic(
       key: ValueKey('smooth_target_${item.name}_$isCorrect'),
-      size: 88,
+      size: 116,
       popOnEntry: true,
       autoFloat: !isCorrect,
       child: Image.asset(
         item.imagePath!,
-        width: 88,
-        height: 88,
+        width: 116,
+        height: 116,
         fit: BoxFit.contain,
       ),
     );
 
     final targetCircle = AnimatedContainer(
       duration: const Duration(milliseconds: 300),
-      padding: const EdgeInsets.all(16),
+      padding: const EdgeInsets.all(14),
       decoration: BoxDecoration(
         color: Colors.white,
         shape: BoxShape.circle,
         border: Border.all(
-          color: isCorrect ? const Color(0xFF4CAF50) : accentColor.withValues(alpha: 0.2),
+          color: isCorrect ? const Color(0xFF4CAF50) : accentColor.withValues(alpha: 0.22),
           width: isCorrect ? 3.5 : 2.5,
         ),
         boxShadow: [
@@ -716,8 +650,8 @@ class _TargetGraphic extends StatelessWidget {
           opacity: 0.75,
           child: Image.asset(
             'assets/images/ui/shine.png',
-            width: 136,
-            height: 136,
+            width: 168,
+            height: 168,
             fit: BoxFit.contain,
           ),
         ),
@@ -727,8 +661,8 @@ class _TargetGraphic extends StatelessWidget {
           right: -4,
           child: Image.asset(
             'assets/images/ui/sparkles.png',
-            width: 32,
-            height: 32,
+            width: 36,
+            height: 36,
             fit: BoxFit.contain,
           ),
         ),
