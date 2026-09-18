@@ -57,10 +57,9 @@ class _SmoothMascotState extends State<SmoothMascot>
         return const Duration(milliseconds: 900);
       case 'pointing':
         return const Duration(milliseconds: 1100);
+      case 'curious':
       case 'thinking':
-        return const Duration(milliseconds: 1800);
-      case 'sad':
-        return const Duration(milliseconds: 1500);
+        return const Duration(milliseconds: 1400);
       case 'idle':
       default:
         return const Duration(milliseconds: 2000);
@@ -75,7 +74,10 @@ class _SmoothMascotState extends State<SmoothMascot>
 
   String get _assetPath {
     final act = widget.action.toLowerCase().trim();
-    const valid = ['celebrate', 'happy', 'idle', 'jump', 'pointing', 'sad', 'thinking'];
+    if (act == 'curious') {
+      return 'assets/images/mascot/thinking.png';
+    }
+    const valid = ['celebrate', 'happy', 'idle', 'jump', 'pointing', 'thinking'];
     final pose = valid.contains(act) ? act : 'idle';
     return 'assets/images/mascot/$pose.png';
   }
@@ -130,17 +132,13 @@ class _SmoothMascotState extends State<SmoothMascot>
           scaleX = 1.0 + sin(t * 2 * pi) * 0.03;
           scaleY = 1.0 + sin(t * 2 * pi) * 0.03;
           rotation = sin(t * pi) * 0.04;
-        } else if (act == 'thinking') {
-          // Curious inquisitive tilt and slow breathing
+        } else if (act == 'curious' || act == 'thinking') {
+          // Curious inquisitive head-tilt with gentle encouraging movement
           final breath = sin(t * 2 * pi);
           scaleX = 1.0 + breath * 0.03;
           scaleY = 1.0 + breath * 0.03;
-          rotation = -0.08 + sin(t * pi) * 0.04;
-        } else if (act == 'sad') {
-          // Gentle empathetic droop and sway
-          offsetY = (widget.size * 0.03) + sin(t * pi) * (widget.size * 0.02);
-          rotation = sin(t * 2 * pi) * 0.025;
-          scaleY = 0.97;
+          rotation = -0.10 + sin(t * pi) * 0.05;
+          offsetY = sin(t * 2 * pi) * (widget.size * 0.02);
         } else {
           // Idle breathing
           final breath = sin(t * 2 * pi);

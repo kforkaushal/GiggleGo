@@ -41,6 +41,7 @@ flutter:
     - assets/images/items/colors/
     - assets/images/items/fruits/
     - assets/images/items/vehicles/
+    - assets/images/items/shapes/
     - assets/sounds/
 
   fonts:

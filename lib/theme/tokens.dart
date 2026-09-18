@@ -68,6 +68,10 @@ class AppColors {
   static const Color vehicles = Color(0xFF0088FF);
   static const Color shapes = Color(0xFF5E35B1);
 
+  // Tutorial Tokens
+  static const Color tutorialBackdrop = Color(0xCC0F172A);
+  static const Color tutorialHighlight = Color(0xFFFFD54F);
+
   // Category Gradients
   static const List<Color> gradientAlphabet = [Color(0xFF9C27B0), Color(0xFFBA68C8)];
   static const List<Color> gradientColors = [Color(0xFFFF5252), Color(0xFFFF7A45)];
@@ -125,6 +129,13 @@ class AppTypography {
     color: AppColors.textDark,
     letterSpacing: 0.5,
   );
+
+  /// Responsive brand / screen title font size for varying display widths.
+  static double responsiveTitleSize(double screenWidth) {
+    if (screenWidth < 360) return 20.0;
+    if (screenWidth < 400) return 22.0;
+    return 24.0;
+  }
 
   // Level 3: Category / Primary Action
   static const TextStyle category = TextStyle(
@@ -226,6 +237,10 @@ class AppSizes {
   static const double headerHeight = 84.0;
   static const double minTouchTarget = 48.0;
   static const double iconButton = 48.0;
+  static const double soundButtonTarget = 56.0;
+  static const double childTarget = 64.0;
+  static const double largePlayButton = 68.0;
+  static const double minCardTap = 120.0;
   static const double categoryArtwork = 96.0;
   static const double learningTarget = 116.0;
   static const double mascotGuide = 84.0;

@@ -1,79 +1,42 @@
 import 'dart:math';
 import 'package:flutter/material.dart';
+import '../data/category_meta.dart';
 import '../theme/tokens.dart';
 import '../widgets/game_card.dart';
 import '../widgets/giggle_header.dart';
 import '../widgets/welcome_banner.dart';
+import '../widgets/tutorial_overlay.dart';
 import '../services/storage_service.dart';
 import '../services/sound_service.dart';
 import 'game_screen.dart';
 import 'alphabet_screen.dart';
 import 'parent_area_screen.dart';
 
-/// Home screen — shows 5 category cards, sound toggle, and parental settings.
+/// Responsive, toddler-friendly Home Screen.
+/// Employs a scrollable sliver architecture (zero overflow on any screen size),
+/// first-session onboarding vs returning-session shortcuts, and large touch targets.
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  final bool forceTutorial;
+
+  const HomeScreen({
+    super.key,
+    this.forceTutorial = false,
+  });
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  // Category metadata: id, display title, emoji, rich gradients
-  static const List<Map<String, dynamic>> _categories = [
-    {
-      'id': 'alphabet',
-      'title': 'ABC Letters',
-      'emoji': '🅰️',
-      'subtitle': 'A to Z letter fun!',
-      'gradient': [Color(0xFF9C27B0), Color(0xFFBA68C8)],
-      'shadow': Color(0xFF9C27B0),
-    },
-    {
-      'id': 'colors',
-      'title': 'Colors',
-      'emoji': '🌈',
-      'subtitle': 'Red, blue & bright hues!',
-      'gradient': [Color(0xFFFF5277), Color(0xFFFF7A45)],
-      'shadow': Color(0xFFFF5277),
-    },
-    {
-      'id': 'fruits',
-      'title': 'Fruits',
-      'emoji': '🍎',
-      'subtitle': 'Apples, mangoes & berries!',
-      'gradient': [Color(0xFF00B074), Color(0xFF52D68A)],
-      'shadow': Color(0xFF00B074),
-    },
-    {
-      'id': 'animals',
-      'title': 'Animals',
-      'emoji': '🦁',
-      'subtitle': 'Lions, puppies & pandas!',
-      'gradient': [Color(0xFFFF9500), Color(0xFFFF5E3A)],
-      'shadow': Color(0xFFFF9500),
-    },
-    {
-      'id': 'vehicles',
-      'title': 'Vehicles',
-      'emoji': '🚗',
-      'subtitle': 'Cars, trains & rockets!',
-      'gradient': [Color(0xFF0088FF), Color(0xFF00C6FF)],
-      'shadow': Color(0xFF0088FF),
-    },
-    {
-      'id': 'shapes',
-      'title': 'Shapes',
-      'emoji': '⭐',
-      'subtitle': 'Stars, moons & patterns!',
-      'gradient': [Color(0xFF5E35B1), Color(0xFF7E57C2)],
-      'shadow': Color(0xFF5E35B1),
-    },
-  ];
+  static List<CategoryMeta> get _baseCategories => allCategories;
 
   final Map<String, int> _starTotals = {};
   int _totalStars = 0;
   bool _soundEnabled = true;
+  bool _tutorialCompleted = false;
+  String? _lastPlayedCategory;
+  bool _showTutorial = false;
+  bool _hasHandledInitialTutorial = false;
 
   @override
   void initState() {
@@ -83,17 +46,28 @@ class _HomeScreenState extends State<HomeScreen> {
 
   Future<void> _loadState() async {
     int total = 0;
-    for (final cat in _categories) {
-      final stars = await StorageService.getStars(cat['id'] as String);
-      _starTotals[cat['id'] as String] = stars;
+    for (final cat in _baseCategories) {
+      final stars = await StorageService.getStars(cat.id);
+      _starTotals[cat.id] = stars;
       total += stars;
     }
+
     final sound = await StorageService.getSoundEnabled();
+    final tutorialDone = await StorageService.getTutorialCompleted();
+    final lastCategory = await StorageService.getLastPlayedCategory();
+
     if (mounted) {
       setState(() {
         _totalStars = total;
         _soundEnabled = sound;
+        _tutorialCompleted = tutorialDone;
+        _lastPlayedCategory = lastCategory;
+        if (widget.forceTutorial && !_hasHandledInitialTutorial) {
+          _hasHandledInitialTutorial = true;
+          _showTutorial = true;
+        }
       });
+
       if (sound) {
         SoundService.playHomeMusic();
       }
@@ -103,23 +77,29 @@ class _HomeScreenState extends State<HomeScreen> {
   Future<void> _toggleSound() async {
     final next = !_soundEnabled;
     await StorageService.setSoundEnabled(next);
-      if (mounted) {
-        setState(() => _soundEnabled = next);
-      }
-      await SoundService.onSoundToggled(next, currentContext: 'home');
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).clearSnackBars();
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(next ? '🔊 Sound & Music turned ON' : '🔇 Sound & Music muted'),
-          duration: const Duration(milliseconds: 1400),
-          behavior: SnackBarBehavior.floating,
-          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      );
+    if (mounted) {
+      setState(() => _soundEnabled = next);
+    }
+    await SoundService.onSoundToggled(next, currentContext: 'home');
+  }
+
+  List<CategoryMeta> get _displayCategories {
+    if (_lastPlayedCategory == null) return _baseCategories;
+
+    // Prioritize the last played category first for returning children
+    final list = List<CategoryMeta>.from(_baseCategories);
+    final idx = list.indexWhere((c) => c.id == _lastPlayedCategory);
+    if (idx > 0) {
+      final item = list.removeAt(idx);
+      list.insert(0, item);
+    }
+    return list;
   }
 
   void _openGame(String categoryId) async {
+    await StorageService.setLastPlayedCategory(categoryId);
+    if (!mounted) return;
+
     if (categoryId == 'alphabet') {
       await Navigator.of(context).push(
         PageRouteBuilder(
@@ -134,6 +114,7 @@ class _HomeScreenState extends State<HomeScreen> {
           },
         ),
       );
+      if (!mounted) return;
       SoundService.playHomeMusic();
       _loadState();
       return;
@@ -152,8 +133,23 @@ class _HomeScreenState extends State<HomeScreen> {
         },
       ),
     );
+    if (!mounted) return;
     SoundService.playHomeMusic();
     _loadState();
+  }
+
+  void _onPrimaryActionTap() {
+    SoundService.playPop();
+    if (!_tutorialCompleted) {
+      // First session: open tutorial demonstration
+      setState(() {
+        _hasHandledInitialTutorial = false;
+        _showTutorial = true;
+      });
+    } else {
+      // Returning session: quick play last category or colors
+      _openGame(_lastPlayedCategory ?? 'colors');
+    }
   }
 
   void _openParentArea() async {
@@ -173,12 +169,15 @@ class _HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isTablet = screenWidth >= 600;
+
     return Scaffold(
       backgroundColor: AppColors.background,
       body: Stack(
         fit: StackFit.expand,
         children: [
-          // Soft ambient cartoon backdrop (PRD Section 25)
+          // Soft ambient cartoon backdrop
           Positioned.fill(
             child: Opacity(
               opacity: 0.10,
@@ -188,116 +187,204 @@ class _HomeScreenState extends State<HomeScreen> {
               ),
             ),
           ),
+
+          // Responsive, scrollable main content with zero overflow
           SafeArea(
-            child: Column(
-              children: [
-                // Standardized Preschool Header (PRD Section 4)
-                GiggleHeader(
-                  totalStars: _totalStars,
-                  soundEnabled: _soundEnabled,
-                  onToggleSound: _toggleSound,
-                  onOpenSettings: _openParentArea,
+            child: CustomScrollView(
+              physics: const BouncingScrollPhysics(),
+              slivers: [
+                // 1. Header (Brand + 56dp Sound + Stars + Quiet Parent Gate)
+                SliverToBoxAdapter(
+                  child: GiggleHeader(
+                    totalStars: _totalStars,
+                    soundEnabled: _soundEnabled,
+                    onToggleSound: _toggleSound,
+                    onOpenSettings: _openParentArea,
+                  ),
                 ),
 
-                // Dedicated Preschool Welcome Banner (PRD Section 5)
-                const WelcomeBanner(),
+                // 2. Welcome Banner
+                const SliverToBoxAdapter(
+                  child: WelcomeBanner(),
+                ),
 
-                // Category Section Header (PRD Section 41)
-                Padding(
+                // 3. Child-First Primary Action ("Start playing" or "Play again")
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: AppSpacing.base,
+                      vertical: AppSpacing.xs + 2,
+                    ),
+                    child: _buildPrimaryActionCard(),
+                  ),
+                ),
+
+                // 4. Clean Category Heading: "Pick a game"
+                SliverToBoxAdapter(
+                  child: Padding(
+                    padding: const EdgeInsets.fromLTRB(
+                      AppSpacing.base,
+                      AppSpacing.sm,
+                      AppSpacing.base,
+                      AppSpacing.xs,
+                    ),
+                    child: Row(
+                      children: [
+                        Text(
+                          'Pick a game',
+                          style: AppTypography.category.copyWith(
+                            fontSize: 15,
+                            color: const Color(0xFF64748B),
+                            letterSpacing: 0.5,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+
+                // 5. Responsive Category Grid (2 columns on mobile, 3 on tablet)
+                SliverPadding(
                   padding: const EdgeInsets.fromLTRB(
                     AppSpacing.base,
                     AppSpacing.xs,
                     AppSpacing.base,
-                    AppSpacing.xs,
+                    AppSpacing.xxl,
                   ),
-                  child: Row(
-                    children: const [
-                      Text(
-                        'CHOOSE A CATEGORY',
-                        style: TextStyle(
-                          fontFamily: AppTypography.fontDisplay,
-                          fontSize: 13.5,
-                          fontWeight: FontWeight.w900,
-                          color: Color(0xFF64748B),
-                          letterSpacing: 1.1,
-                        ),
-                      ),
-                    ],
+                  sliver: SliverGrid(
+                    delegate: SliverChildBuilderDelegate(
+                      (context, index) => _buildCard(_displayCategories[index]),
+                      childCount: _displayCategories.length,
+                    ),
+                    gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: isTablet ? 3 : 2,
+                      crossAxisSpacing: 12,
+                      mainAxisSpacing: 12,
+                      childAspectRatio: isTablet ? 1.05 : 0.88,
+                    ),
                   ),
                 ),
-
-                // 6 Game Cards Grid (2 columns x 3 rows, PRD Section 6)
-                Expanded(
-                  child: Padding(
-                    padding: const EdgeInsets.symmetric(horizontal: AppSpacing.base),
-                    child: _buildGrid(),
-                  ),
-                ),
-                const SizedBox(height: AppSpacing.sm),
               ],
             ),
           ),
+
+          // Interactive 4-step toddler tutorial overlay if triggered
+          if (_showTutorial)
+            TutorialOverlay(
+              onCompleted: () {
+                setState(() {
+                  _showTutorial = false;
+                  _hasHandledInitialTutorial = true;
+                  _tutorialCompleted = true;
+                });
+                _loadState();
+              },
+              onSkip: () {
+                setState(() {
+                  _showTutorial = false;
+                  _hasHandledInitialTutorial = true;
+                  _tutorialCompleted = true;
+                });
+                _loadState();
+              },
+            ),
         ],
       ),
     );
   }
 
-  Widget _buildGrid() {
-    return Column(
-      children: [
-        // Row 1: Alphabet & Colors
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(child: _buildCard(_categories[0])),
-              const SizedBox(width: 12),
-              Expanded(child: _buildCard(_categories[1])),
-            ],
-          ),
-        ),
-        const SizedBox(height: 12),
+  Widget _buildPrimaryActionCard() {
+    final isFirstSession = !_tutorialCompleted;
+    final label = isFirstSession ? 'Start playing!' : 'Play again!';
+    final subtitle = isFirstSession ? 'Learn how to tap & play ✨' : 'Jump right into learning fun ✨';
 
-        // Row 2: Fruits & Animals
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(child: _buildCard(_categories[2])),
-              const SizedBox(width: 12),
-              Expanded(child: _buildCard(_categories[3])),
-            ],
+    return GestureDetector(
+      onTap: _onPrimaryActionTap,
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFFFF9500), Color(0xFFFFB300)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
           ),
+          borderRadius: AppRadius.roundedXl,
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFFFF9500).withValues(alpha: 0.35),
+              blurRadius: 14,
+              offset: const Offset(0, 5),
+            ),
+          ],
         ),
-        const SizedBox(height: 12),
-
-        // Row 3: Vehicles & Shapes
-        Expanded(
-          child: Row(
-            children: [
-              Expanded(child: _buildCard(_categories[4])),
-              const SizedBox(width: 12),
-              Expanded(child: _buildCard(_categories[5])),
-            ],
-          ),
+        child: Row(
+          children: [
+            Container(
+              width: 50,
+              height: 50,
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                shape: BoxShape.circle,
+              ),
+              child: Image.asset(
+                'assets/images/ui/btn_play.png',
+                width: 32,
+                height: 32,
+                fit: BoxFit.contain,
+              ),
+            ),
+            const SizedBox(width: AppSpacing.md),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Text(
+                    label,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.fontDisplay,
+                      fontSize: 20,
+                      fontWeight: FontWeight.w900,
+                      color: Colors.white,
+                    ),
+                  ),
+                  Text(
+                    subtitle,
+                    style: const TextStyle(
+                      fontFamily: AppTypography.fontBody,
+                      fontSize: 12.5,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(
+              Icons.arrow_forward_ios_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 
-  Widget _buildCard(Map<String, dynamic> cat) {
+  Widget _buildCard(CategoryMeta cat) {
     return GameCard(
-      emoji: cat['emoji'] as String,
-      title: cat['title'] as String,
-      subtitle: cat['subtitle'] as String?,
-      categoryId: cat['id'] as String?,
-      gradientColors: cat['gradient'] as List<Color>,
-      shadowColor: cat['shadow'] as Color,
-      totalStars: _starTotals[cat['id']] ?? 0,
-      onTap: () => _openGame(cat['id'] as String),
+      emoji: cat.emoji,
+      title: cat.title,
+      categoryId: cat.id,
+      gradientColors: cat.gradient,
+      shadowColor: cat.shadow,
+      totalStars: _starTotals[cat.id] ?? 0,
+      onTap: () => _openGame(cat.id),
     );
   }
 }
 
-/// Sleek, minimalist adult math challenge (Parental Gate).
+/// Minimalist, adult math challenge (Parental Gate).
 class _ParentalGateDialog extends StatefulWidget {
   const _ParentalGateDialog();
 

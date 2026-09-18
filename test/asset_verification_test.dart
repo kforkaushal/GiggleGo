@@ -154,6 +154,11 @@ void main() {
         'assets/images/items/vehicles/fire_truck.png',
         'assets/images/items/vehicles/helicopter.png',
         'assets/images/items/vehicles/scooter.png',
+        'assets/images/items/shapes/circle.png',
+        'assets/images/items/shapes/oval.png',
+        'assets/images/items/shapes/square.png',
+        'assets/images/items/shapes/star.png',
+        'assets/images/items/shapes/triangle.png',
       ];
       for (final item in items) {
         expect(File(item).existsSync(), isTrue, reason: 'Item asset missing: $item');

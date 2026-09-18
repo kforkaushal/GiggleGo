@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import '../theme/tokens.dart';
 import 'star_counter.dart';
 
-/// Standardized Preschool Header (PRD Section 4).
-/// Ensures the brand identity remains dominant while organizing secondary controls.
+/// Standardized Preschool Header (PRD Section 4 & Improvement PRD Section 3.2).
+/// Ensures brand identity remains prominent while providing generous 56dp+ touch targets for toddlers,
+/// responsive title scaling on narrow screens, and discreet parent controls.
 class GiggleHeader extends StatelessWidget {
   final int totalStars;
   final bool soundEnabled;
@@ -24,12 +25,16 @@ class GiggleHeader extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final screenWidth = MediaQuery.sizeOf(context).width;
+    final isCompact = screenWidth < 380;
+    final isUltraCompact = screenWidth < 340;
+
     return Container(
-      constraints: const BoxConstraints(minHeight: 74, maxHeight: 88),
-      padding: const EdgeInsets.fromLTRB(
-        AppSpacing.base,
+      constraints: const BoxConstraints(minHeight: 72, maxHeight: 88),
+      padding: EdgeInsets.fromLTRB(
+        isUltraCompact ? AppSpacing.xs + 2 : (isCompact ? AppSpacing.sm : AppSpacing.base),
         AppSpacing.sm,
-        AppSpacing.base,
+        isUltraCompact ? AppSpacing.xs + 2 : (isCompact ? AppSpacing.sm : AppSpacing.base),
         AppSpacing.xs,
       ),
       child: Row(
@@ -39,19 +44,22 @@ class GiggleHeader extends StatelessWidget {
             _buildCircleIconButton(
               icon: Image.asset(
                 'assets/images/ui/btn_back.png',
-                width: 44,
-                height: 44,
+                width: isCompact ? 38 : 44,
+                height: isCompact ? 38 : 44,
                 fit: BoxFit.contain,
               ),
               onTap: onBack!,
-              size: AppSizes.minTouchTarget,
+              size: isCompact ? 44 : AppSizes.minTouchTarget,
+              semanticsLabel: 'Back',
             ),
-            const SizedBox(width: AppSpacing.sm),
+            SizedBox(width: isCompact ? AppSpacing.xs : AppSpacing.sm),
             if (title != null)
               Expanded(
                 child: Text(
                   title!,
-                  style: AppTypography.screenTitle,
+                  style: AppTypography.screenTitle.copyWith(
+                    fontSize: AppTypography.responsiveTitleSize(screenWidth),
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -59,65 +67,72 @@ class GiggleHeader extends StatelessWidget {
             else
               const Spacer(),
           ] else ...[
-            // Dominant Giggle Go! Brand Group (150-210px wide)
-            SizedBox(
-              width: 175,
-              height: 54,
+            // Dominant Giggle Go! Brand Group (Flexible to avoid overflow)
+            Expanded(
               child: Row(
+                mainAxisSize: MainAxisSize.min,
                 children: [
                   Image.asset(
                     'assets/images/logo.png',
-                    width: 50,
-                    height: 50,
+                    width: isUltraCompact ? 36 : (isCompact ? 40 : 48),
+                    height: isUltraCompact ? 36 : (isCompact ? 40 : 48),
                     fit: BoxFit.contain,
                   ),
-                  const SizedBox(width: AppSpacing.sm),
-                  const Expanded(
+                  SizedBox(width: isUltraCompact ? 4 : AppSpacing.xs),
+                  Flexible(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
                       alignment: Alignment.centerLeft,
                       child: Text(
                         'Giggle Go!',
-                        style: AppTypography.brand,
+                        style: AppTypography.brand.copyWith(
+                          fontSize: isUltraCompact ? 20 : (isCompact ? 22 : 26),
+                        ),
                       ),
                     ),
                   ),
                 ],
               ),
             ),
-            const Spacer(),
           ],
 
-          // Right: Secondary controls [ Sound ] [ Stars ] [ Settings ]
+          SizedBox(width: isCompact ? 4 : AppSpacing.sm),
+
+          // Right: Secondary controls [ Sound (56dp target) ] [ Stars ] [ Parent ]
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Sound Toggle Button (48-52px touch target)
+              // Child Sound Toggle (Responsive: 48dp on compact, 56dp on standard/tablet)
               _buildCircleIconButton(
-                size: AppSizes.minTouchTarget,
+                size: isUltraCompact ? 46 : (isCompact ? 50 : AppSizes.soundButtonTarget),
                 icon: Icon(
                   soundEnabled ? Icons.volume_up_rounded : Icons.volume_off_rounded,
-                  size: 22,
+                  size: isCompact ? 22 : 26,
                   color: soundEnabled ? const Color(0xFF475569) : const Color(0xFF94A3B8),
                 ),
                 onTap: onToggleSound,
+                semanticsLabel: soundEnabled ? 'Mute sound' : 'Turn sound on',
               ),
-              const SizedBox(width: AppSpacing.sm),
+              SizedBox(width: isUltraCompact ? 4 : (isCompact ? 6 : AppSpacing.sm)),
 
-              // Star Counter (90-125px)
-              StarCounter(count: totalStars),
+              // Star Counter (passes isCompact flag)
+              StarCounter(
+                count: totalStars,
+                isCompact: isCompact,
+              ),
 
-              // Optional Settings / Parent Area Button
+              // Quiet Parent Settings Button
               if (onOpenSettings != null) ...[
-                const SizedBox(width: AppSpacing.sm),
+                SizedBox(width: isUltraCompact ? 4 : (isCompact ? 6 : AppSpacing.xs + 2)),
                 _buildCircleIconButton(
-                  size: AppSizes.minTouchTarget,
-                  icon: const Icon(
+                  size: isUltraCompact ? 36 : (isCompact ? 38 : 42),
+                  icon: Icon(
                     Icons.family_restroom_rounded,
-                    size: 22,
-                    color: Color(0xFF64748B),
+                    size: isCompact ? 18 : 20,
+                    color: const Color(0xFF64748B),
                   ),
                   onTap: onOpenSettings!,
+                  semanticsLabel: 'Parents Area',
                 ),
               ],
             ],
@@ -131,20 +146,25 @@ class GiggleHeader extends StatelessWidget {
     required Widget icon,
     required VoidCallback onTap,
     required double size,
+    required String semanticsLabel,
   }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: size,
-        height: size,
-        alignment: Alignment.center,
-        decoration: BoxDecoration(
-          color: AppColors.surface,
-          shape: BoxShape.circle,
-          border: Border.all(color: AppColors.borderLight, width: 1.5),
-          boxShadow: AppShadows.soft,
+    return Semantics(
+      button: true,
+      label: semanticsLabel,
+      child: GestureDetector(
+        onTap: onTap,
+        child: Container(
+          width: size,
+          height: size,
+          alignment: Alignment.center,
+          decoration: BoxDecoration(
+            color: AppColors.surface,
+            shape: BoxShape.circle,
+            border: Border.all(color: AppColors.borderLight, width: 1.5),
+            boxShadow: AppShadows.soft,
+          ),
+          child: icon,
         ),
-        child: icon,
       ),
     );
   }

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'screens/splash_screen.dart';
+import 'services/sound_service.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -14,8 +15,31 @@ void main() async {
   runApp(const GiggleGoApp());
 }
 
-class GiggleGoApp extends StatelessWidget {
+class GiggleGoApp extends StatefulWidget {
   const GiggleGoApp({super.key});
+
+  @override
+  State<GiggleGoApp> createState() => _GiggleGoAppState();
+}
+
+class _GiggleGoAppState extends State<GiggleGoApp> with WidgetsBindingObserver {
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    SoundService.disposePlayer();
+    super.dispose();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    SoundService.onAppLifecycleChanged(state);
+  }
 
   @override
   Widget build(BuildContext context) {

@@ -146,6 +146,7 @@ class _AlphabetScreenState extends State<AlphabetScreen>
   }
 
   void _startAlphabetGame() {
+    StorageService.setLastPlayedCategory('alphabet');
     Navigator.of(context).pushReplacement(
       PageRouteBuilder(
         transitionDuration: const Duration(milliseconds: 320),

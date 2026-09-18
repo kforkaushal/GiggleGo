@@ -1,16 +1,16 @@
 import 'package:flutter/material.dart';
+import '../data/category_meta.dart';
 import '../services/sound_service.dart';
 import '../theme/tokens.dart';
 import 'game_graphic.dart';
 import 'progress_badge.dart';
 
-/// Standardized Category Card for the Home Screen Grid (PRD Section 6, 7, 8).
-/// Employs a consistent internal layout:
-/// CategoryCard
-/// ├── Top-right progress badge
-/// ├── Artwork zone (standardized 80–96px container with white backing)
-/// ├── Title
-/// └── Subtitle
+/// Standardized Category Card for the Home Screen Grid (PRD Sections 6, 7, 8 & Improvement PRD Section 3.3).
+/// Employs a toddler-first layout:
+/// - Large centered artwork container (white circular backing)
+/// - Short one-word title with zero subtitle noise
+/// - Progress badge (stars)
+/// - Minimum 120dp tap area and accessible semantics
 class GameCard extends StatefulWidget {
   final String emoji;
   final String title;
@@ -21,6 +21,7 @@ class GameCard extends StatefulWidget {
   final int totalStars;
   final VoidCallback onTap;
   final bool isHorizontal;
+  final bool showSubtitle;
 
   const GameCard({
     super.key,
@@ -33,6 +34,7 @@ class GameCard extends StatefulWidget {
     required this.totalStars,
     required this.onTap,
     this.isHorizontal = false,
+    this.showSubtitle = false,
   });
 
   @override
@@ -75,16 +77,8 @@ class _GameCardState extends State<GameCard>
   void _onTapCancel() => _controller.forward();
 
   String? _categoryImagePath() {
-    final cat = widget.categoryId ?? '';
-    switch (cat) {
-      case 'alphabet': return 'assets/images/alphabet/a.png';
-      case 'animals': return 'assets/images/categories/animals.png';
-      case 'fruits': return 'assets/images/categories/fruits.png';
-      case 'vehicles': return 'assets/images/categories/vehicles.png';
-      case 'shapes': return 'assets/images/categories/shapes.png';
-      case 'colors': return 'assets/images/categories/colors.png';
-      default: return null;
-    }
+    if (widget.categoryId == null || widget.categoryId!.isEmpty) return null;
+    return getCategoryMeta(widget.categoryId!).iconPath;
   }
 
   String _defaultGraphicName() {
@@ -166,73 +160,75 @@ class _GameCardState extends State<GameCard>
 
   @override
   Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: _onTapDown,
-      onTapUp: _onTapUp,
-      onTapCancel: _onTapCancel,
-      child: ScaleTransition(
-        scale: _scaleAnim,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: widget.gradientColors,
+    return Semantics(
+      button: true,
+      label: '${widget.title}, ${widget.totalStars} stars earned',
+      child: GestureDetector(
+        onTapDown: _onTapDown,
+        onTapUp: _onTapUp,
+        onTapCancel: _onTapCancel,
+        child: ScaleTransition(
+          scale: _scaleAnim,
+          child: Container(
+            constraints: const BoxConstraints(minHeight: AppSizes.minCardTap),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+                colors: widget.gradientColors,
+              ),
+              borderRadius: AppRadius.roundedXl,
+              border: Border.all(
+                color: Colors.white.withValues(alpha: 0.35),
+                width: 1.5,
+              ),
+              boxShadow: AppShadows.categoryCard(widget.shadowColor),
             ),
-            borderRadius: AppRadius.roundedXl,
-            border: Border.all(
-              color: Colors.white.withValues(alpha: 0.35),
-              width: 1.5,
-            ),
-            boxShadow: AppShadows.categoryCard(widget.shadowColor),
-          ),
-          clipBehavior: Clip.antiAlias,
-          child: Stack(
-            children: [
-              // Ambient soft background circles for texture
-              Positioned(
-                top: -24,
-                right: -24,
-                child: Container(
-                  width: 90,
-                  height: 90,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    shape: BoxShape.circle,
+            clipBehavior: Clip.antiAlias,
+            child: Stack(
+              children: [
+                // Soft ambient background circles
+                Positioned(
+                  top: -24,
+                  right: -24,
+                  child: Container(
+                    width: 90,
+                    height: 90,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.12),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
-              Positioned(
-                bottom: -28,
-                left: -20,
-                child: Container(
-                  width: 80,
-                  height: 80,
-                  decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.08),
-                    shape: BoxShape.circle,
+                Positioned(
+                  bottom: -28,
+                  left: -20,
+                  child: Container(
+                    width: 80,
+                    height: 80,
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.08),
+                      shape: BoxShape.circle,
+                    ),
                   ),
                 ),
-              ),
 
-              // Top-Right Progress Badge (PRD Section 8)
-              Positioned(
-                top: AppSpacing.sm + 2,
-                right: AppSpacing.sm + 2,
-                child: ProgressBadge(count: widget.totalStars),
-              ),
-
-              // Card Content
-              Padding(
-                padding: const EdgeInsets.symmetric(
-                  horizontal: AppSpacing.base,
-                  vertical: AppSpacing.md,
+                // Top-Right Progress Badge
+                Positioned(
+                  top: AppSpacing.sm + 2,
+                  right: AppSpacing.sm + 2,
+                  child: ProgressBadge(count: widget.totalStars),
                 ),
-                child: widget.isHorizontal
-                    ? _buildHorizontalContent()
-                    : _buildVerticalContent(),
-              ),
-            ],
+
+                // Card Content
+                Padding(
+                  padding: const EdgeInsets.all(AppSpacing.md),
+                  child: widget.isHorizontal
+                      ? _buildHorizontalContent()
+                      : _buildVerticalContent(),
+                ),
+              ],
+            ),
           ),
         ),
       ),
@@ -242,33 +238,38 @@ class _GameCardState extends State<GameCard>
   Widget _buildVerticalContent() {
     return LayoutBuilder(
       builder: (context, constraints) {
-        // Adapt artwork size responsively based on available card height
-        final artworkSize = constraints.maxHeight < 130
-            ? 52.0
-            : constraints.maxHeight < 155
-                ? 62.0
-                : 74.0;
+        // Responsive artwork sizing ensuring comfortable space for title
+        final artworkSize = constraints.maxHeight < 135
+            ? 56.0
+            : constraints.maxHeight < 160
+                ? 66.0
+                : 76.0;
 
         return Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+          mainAxisAlignment: MainAxisAlignment.center,
+          crossAxisAlignment: CrossAxisAlignment.center,
           children: [
-            // Standardized Artwork Zone (PRD Section 7)
-            _buildArtwork(size: artworkSize),
+            const Spacer(flex: 2),
 
-            const Spacer(),
+            // Centered Artwork Zone
+            Center(child: _buildArtwork(size: artworkSize)),
 
-            // Title
+            const Spacer(flex: 3),
+
+            // Short Single-Word Title (centered)
             FittedBox(
               fit: BoxFit.scaleDown,
-              alignment: Alignment.centerLeft,
+              alignment: Alignment.center,
               child: Text(
                 widget.title,
-                style: AppTypography.cardTitle,
+                style: AppTypography.cardTitle.copyWith(
+                  fontSize: 20,
+                ),
+                textAlign: TextAlign.center,
               ),
             ),
 
-            // Subtitle
-            if (widget.subtitle != null) ...[
+            if (widget.showSubtitle && widget.subtitle != null) ...[
               const SizedBox(height: 2),
               Text(
                 widget.subtitle!,
@@ -277,6 +278,8 @@ class _GameCardState extends State<GameCard>
                 overflow: TextOverflow.ellipsis,
               ),
             ],
+
+            const Spacer(flex: 1),
           ],
         );
       },
@@ -297,7 +300,7 @@ class _GameCardState extends State<GameCard>
                 widget.title,
                 style: AppTypography.cardTitle,
               ),
-              if (widget.subtitle != null) ...[
+              if (widget.showSubtitle && widget.subtitle != null) ...[
                 const SizedBox(height: 2),
                 Text(
                   widget.subtitle!,
